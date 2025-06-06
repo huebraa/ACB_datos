@@ -190,14 +190,11 @@ debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
 valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
 valores_radar = valores_dict[jugadora].tolist()
-valores_radar += valores_radar[:1]
-labels = variables + [variables[0]]           # n + 1
-values = valores_radar                        # ya tiene n + 1
+valores_radar += valores_radar[:1]  # cerrar círculo
 
-angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)  # n+1
-
-# No agregues [0] extra al final de angles
-
+labels = variables
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+angles += angles[:1]  # cerrar círculo
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
@@ -205,7 +202,9 @@ ax.fill(angles, valores_radar, alpha=0.25)
 ax.set_xticks(angles[:-1])
 ax.set_xticklabels(labels)
 ax.set_title(f"Radar de {jugadora}")
+
 tabs[6].pyplot(fig)
+
 
 # Informe de texto
 texto = f"**Informe de {jugadora}**\n\n"
