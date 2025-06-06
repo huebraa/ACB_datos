@@ -32,26 +32,37 @@ if len(variables) < 2:
     st.stop()
 
 # Limpiar y escalar datos
-# Columnas con porcentaje que pueden venir como strings con '%'
-columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'STL%', 'BLK%', 'USG%']
+import numpy as np
 
-# Convertir columnas % de string con '%' a float entre 0 y 1
+# 1. Limpiar columnas con '%'
+columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
+
 for col in columnas_porcentaje:
-    if col in df.columns and df[col].dtype == object:
-        df[col] = df[col].str.rstrip('%').replace('', np.nan).astype(float) / 100
+    if col in df.columns:
+        # Quitar '%' y convertir a float
+        df[col] = df[col].astype(str).str.rstrip('%').replace('', np.nan)
+        df[col] = pd.to_numeric(df[col], errors='coerce') / 100
 
-# Otras columnas numéricas que pueden contener strings, convertir a float con coerción
+# 2. Convertir todas las variables seleccionadas a numérico (por si hay strings)
 for col in variables:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# Filtrar las filas sin datos NaN en las variables seleccionadas
+# 3. Construir DataFrame para clustering y limpiar NaN e inf
 X = df[variables].copy()
-X = X.dropna()
 
-# Escalar los datos
+# Eliminar filas con NaN o Inf
+X = X.replace([np.inf, -np.inf], np.nan).dropna()
+
+# Verificar si queda algo para escalar
+if X.empty:
+    st.error("No hay datos válidos para escalar después de limpiar NaN/Inf. Revisa las columnas seleccionadas.")
+    st.stop()
+
+# 4. Escalar
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
+
 
 
 # Clustering
