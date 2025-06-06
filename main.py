@@ -186,6 +186,8 @@ if st.button("Recomendar jugadores similares"):
 
         st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
         st.dataframe(similares[['Distancia']])
+else:
+    st.write("Selecciona un jugador y pulsa 'Recomendar jugadores similares'.")
 
 # --- NUEVA SECCIÓN: MAPA DE CALOR DE CORRELACIONES ---
 st.subheader("Mapa de calor de correlaciones entre variables")
