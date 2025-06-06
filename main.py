@@ -33,28 +33,6 @@ columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_
 columnas_numericas = df.select_dtypes(include='number').columns
 columnas_utiles = [col for col in columnas_numericas if col not in columnas_excluir]
 
-# Sidebar para controles
-with st.sidebar:
-    st.header("Configuración")
-    mostrar_datos = st.checkbox("Mostrar datos crudos")
-    variables = st.multiselect("Variables para clustering:", columnas_utiles, default=columnas_utiles[:4])
-
-    if len(variables) < 2:
-        st.warning("Selecciona al menos 2 variables.")
-        st.stop()
-
-    k = st.slider("Número de clusters", 2, 10, 3)
-
-    jugador_seleccionado = st.selectbox("Selecciona un jugador para recomendar similares:", sorted(df['Player'].unique()))
-    btn_similares = st.button("Recomendar jugadores similares")
-
-    st.markdown("---")
-    st.header("Opciones visualización")
-    mostrar_dendrograma_global = st.checkbox("Mostrar dendrograma global", value=True)
-    mostrar_dendrogramas_por_cluster = st.checkbox("Mostrar dendrogramas por cluster", value=True)
-    mostrar_radar_charts = st.checkbox("Mostrar radar charts por cluster", value=False)
-    mostrar_atipicos = st.checkbox("Mostrar jugadores atípicos por cluster", value=False)
-    mostrar_mapa_calor = st.checkbox("Mostrar mapa de calor de correlaciones", value=True)
 
 # Layout columnas
 col_izq, col_der = st.columns([1, 3])
