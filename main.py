@@ -197,13 +197,31 @@ angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
 angles += angles[:1]  # cerrar círculo
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
-ax.fill(angles, valores_radar, alpha=0.25)
+
+# Plot línea y relleno minimalista
+ax.plot(angles, valores_radar, color="#1f77b4", linewidth=1.5)  # línea fina azul suave
+ax.fill(angles, valores_radar, color="#1f77b4", alpha=0.2)     # relleno muy translúcido
+
+# Configurar ticks
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels)
-ax.set_title(f"Radar de {jugadora}")
+ax.set_xticklabels(labels, fontsize=10, fontweight='medium', color="#333")
+
+# Quitar etiquetas de radio y líneas de cuadrícula
+ax.set_yticklabels([])
+ax.yaxis.grid(False)
+ax.xaxis.grid(False)
+
+# Quitar el borde del círculo para un efecto más limpio
+ax.spines['polar'].set_visible(False)
+
+# Título minimalista
+ax.set_title(f"Radar de {jugadora}", fontsize=12, fontweight='semibold', color="#222", pad=20)
+
+# Ajustar margen para que etiquetas no se corten
+plt.tight_layout()
 
 tabs[6].pyplot(fig)
+
 
 
 # Informe de texto
