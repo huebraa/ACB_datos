@@ -103,19 +103,21 @@ tabs[0].plotly_chart(fig, use_container_width=True)
 
 # --- TAB 2: Dendrogramas ---
 if mostrar_dendros:
-    df_filt = df_clustered[df_clustered['Cluster'].isin(cluster_seleccionado)].copy()
+    df_filt = df_clustered.copy()  # Todos los jugadores sin filtro
     num_jugadoras = len(df_filt)
     if num_jugadoras > 2:
         X_all = df_filt[variables].values
         labels_all = df_filt['Player'].values
         linkage_matrix = linkage(X_all, method='ward')
         
-        fig_width = max(20, num_jugadoras * 0.3)
+        # Ajustar tamaño del gráfico según número de jugadoras
+        fig_width = max(20, num_jugadoras * 0.3)  # mínimo 20, escala con jugadores
         fig_height = 10
         
         fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-        dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=8)
+        dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=8, ax=ax)
         
+        # Añadir CSS para scroll horizontal
         tabs[1].markdown("""
             <style>
             .scrollable-dendro {
@@ -126,13 +128,14 @@ if mostrar_dendros:
             }
             </style>
         """, unsafe_allow_html=True)
-
-        with tabs[1].container():
-            tabs[1].markdown('<div class="scrollable-dendro">', unsafe_allow_html=True)
-            tabs[1].pyplot(fig)
-            tabs[1].markdown('</div>', unsafe_allow_html=True)
+        
+        # Mostrar dendrograma dentro de contenedor con scroll horizontal
+        tabs[1].markdown('<div class="scrollable-dendro">', unsafe_allow_html=True)
+        tabs[1].pyplot(fig)
+        tabs[1].markdown('</div>', unsafe_allow_html=True)
     else:
-        tabs[1].write("Selecciona al menos 3 jugadoras para mostrar dendrograma.")
+        tabs[1].write("Se necesitan al menos 3 jugadoras para mostrar el dendrograma.")
+
 
 
 
