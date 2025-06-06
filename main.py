@@ -6,6 +6,8 @@ from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 
 
