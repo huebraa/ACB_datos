@@ -51,12 +51,6 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-
-
-# Mostrar resultados
-st.subheader("Jugadoras por Cluster")
-st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
-
 # --- NUEVA SECCIÓN: JUGADORES SIMILARES ---
 st.subheader("🎯 Buscar jugadores similares")
 
@@ -93,6 +87,12 @@ if len(variables) >= 2:
     st.pyplot(fig)
 else:
     st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
+
+# Mostrar resultados
+st.subheader("Jugadoras por Cluster")
+st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
+
+
 
 # Visualización 2D interactiva con Plotly
 st.subheader("Visualización 2D con PCA y Clusters")
