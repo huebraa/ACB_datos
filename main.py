@@ -53,14 +53,14 @@ st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Clu
 # Visualización 2D interactiva con Plotly
 st.subheader("Visualización 2D con PCA y Clusters")
 
+# Aquí crearías tu gráfico:
 fig = px.scatter(
-    df_clustered, x='PCA1', y='PCA2',
-    color='Cluster',
-    hover_data=['Player', 'Team_completo', 'Pos'],
-    color_continuous_scale=px.colors.qualitative.Set2,
-    title="Clustering de Jugadoras - PCA 2D",
-    labels={'PCA1': 'Componente Principal 1', 'PCA2': 'Componente Principal 2'}
+    df_pca, x='PC1', y='PC2', color='cluster',
+    hover_data=['Player'], 
+    title='Visualización de Jugadores con PCA y Clustering',
+    template='simple_white'
 )
+
 
 fig.update_traces(marker=dict(size=10, line=dict(width=0.5, color='DarkSlateGrey')))
 fig.update_layout(
@@ -78,4 +78,22 @@ fig.update_layout(
     )
 )
 
+# Aquí agregas el update_layout para ajustar diseño y tamaño:
+fig.update_layout(
+    legend_title_text='Cluster',
+    legend=dict(
+        itemsizing='constant',
+        bgcolor='rgba(0,0,0,0)'
+    ),
+    margin=dict(l=40, r=40, t=40, b=40),
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=12,
+        font_family="Arial"
+    ),
+    width=None,     # No fijo, para que ocupe todo el ancho
+    height=600      # Altura fija
+)
+
+# Finalmente muestras la figura usando todo el ancho:
 st.plotly_chart(fig, use_container_width=True)
