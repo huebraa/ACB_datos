@@ -96,30 +96,42 @@ if mostrar_dendros:
 
 # --- TAB 3: Radar Charts ---
 if mostrar_radar:
+    tabs[2].subheader("Radar Charts por Cluster")
     colores = plt.cm.viridis(np.linspace(0, 1, k))
+
     for cluster_id in sorted(df_clustered['Cluster'].unique()):
         subset = df_clustered[df_clustered['Cluster'] == cluster_id]
         if len(subset) < 2:
             continue
+
         means = subset[variables].mean()
-        normalized = MinMaxScaler((0, 100)).fit_transform(means.values.reshape(-1, 1)).flatten()
-        labels_radar = means.index.tolist()
-        values = normalized.tolist() + [normalized[0]]
-        angles = np.linspace(0, 2 * np.pi, len(values), endpoint=False).tolist() + [0]
-        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        scaler_radar = MinMaxScaler((0, 100))
+        normalized = pd.Series(
+            scaler_radar.fit_transform(means.values.reshape(-1, 1)).flatten(),
+            index=means.index
+        )
+
+        if len(normalized) < 2:
+            continue  # Evitar radar charts inválidos
+
         labels_radar = normalized.index.tolist()
         values = normalized.values.tolist()
         angles = np.linspace(0, 2 * np.pi, len(values), endpoint=False).tolist()
-        
-        # Asegúrate de cerrar el círculo añadiendo el primer valor al final
+
+        # Cerrar el círculo
         values += values[:1]
         angles += angles[:1]
-        ax.plot(angles, values, color=to_hex(colores[cluster_id]), linewidth=2)
-        ax.fill(angles, values, color=to_hex(colores[cluster_id]), alpha=0.25)
+
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        color = to_hex(colores[cluster_id % len(colores)])
+        ax.plot(angles, values, color=color, linewidth=2)
+        ax.fill(angles, values, color=color, alpha=0.25)
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(labels_radar)
-        ax.set_title(f"Cluster {cluster_id}")
+        ax.set_title(f"Radar (0-100) - Cluster {cluster_id}")
+        ax.set_yticklabels([])
         tabs[2].pyplot(fig)
+
 
 # --- TAB 4: Jugadores diferentes ---
 tabs[3].subheader("Jugadores más alejados del centroide")
