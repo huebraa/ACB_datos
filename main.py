@@ -177,8 +177,6 @@ if mostrar_corr:
     tabs[5].pyplot(fig)
 
 # --- TAB 7: Scouting Report ---
-tabs.append(st.tabs(["📝 Scouting Report"])[0])
-
 jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
 fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
 valores = fila[variables]
@@ -214,3 +212,4 @@ if not fortalezas and not debilidades:
     texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
 
 tabs[6].markdown(texto)
+
