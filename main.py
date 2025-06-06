@@ -11,6 +11,7 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
 import seaborn as sns
 from scipy.stats import percentileofscore
+from sklearn.preprocessing import MinMaxScaler
 
 # --- CONFIGURACION INICIAL ---
 st.set_page_config(layout="wide", page_title="Cluster Jugadoras FIBA Europa")
@@ -190,48 +191,36 @@ debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
 valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
 valores_radar = valores_dict[jugadora].tolist()
-valores_radar += valores_radar[:1]  # cerrar círculo
-
-labels = variables
-angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-angles += angles[:1]  # cerrar círculo
+valores_radar += valores_radar[:1]
+labels = variables + [variables[0]]
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-
-# Plot línea y relleno minimalista
-ax.plot(angles, valores_radar, color="#1f77b4", linewidth=1.5)  # línea fina azul suave
-ax.fill(angles, valores_radar, color="#1f77b4", alpha=0.2)     # relleno muy translúcido
-
-# Configurar ticks
+ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
+ax.fill(angles, valores_radar, alpha=0.25)
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels, fontsize=10, fontweight='medium', color="#333")
+ax.set_xticklabels(labels)
+ax.set_title(f"Radar de {jugadora}")
+tabs[6].pyplot(fig)
+¿Dónde pones el código minimalista?
+Reemplaza el bloque que crea el gráfico radar (desde fig, ax = plt.subplots(...) hasta tabs[6].pyplot(fig)) por el código que te pasé para el estilo minimalista.
 
-# Quitar etiquetas de radio y líneas de cuadrícula
-ax.set_yticklabels([])
-ax.yaxis.grid(False)
-ax.xaxis.grid(False)
+Así:
 
-# Quitar el borde del círculo para un efecto más limpio
-ax.spines['polar'].set_visible(False)
+python
+Copiar
+Editar
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
-# Título minimalista
-ax.set_title(f"Radar de {jugadora}", fontsize=12, fontweight='semibold', color="#222", pad=20)
+ax.plot(angles, valores_radar, linewidth=1, linestyle='solid', color='black', label=jugadora)
+ax.fill(angles, valores_radar, color='black', alpha=0.1)
 
-# Ajustar margen para que etiquetas no se corten
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(labels, fontsize=10, color='black')
+ax.set_yticklabels([])  # Oculta etiquetas radiales
+ax.set_title(f"Perfil de {jugadora}", fontsize=14, color='black', pad=20)
+
 plt.tight_layout()
-
 tabs[6].pyplot(fig)
 
-
-
-# Informe de texto
-texto = f"**Informe de {jugadora}**\n\n"
-if fortalezas:
-    texto += "🟢 **Fortalezas**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in fortalezas) + "\n"
-if debilidades:
-    texto += "🔴 **Debilidades**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in debilidades) + "\n"
-if not fortalezas and not debilidades:
-    texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
-
-tabs[6].markdown(texto)
 
