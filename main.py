@@ -107,6 +107,13 @@ if mostrar_radar:
         values = normalized.tolist() + [normalized[0]]
         angles = np.linspace(0, 2 * np.pi, len(values), endpoint=False).tolist() + [0]
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        labels_radar = normalized.index.tolist()
+        values = normalized.values.tolist()
+        angles = np.linspace(0, 2 * np.pi, len(values), endpoint=False).tolist()
+        
+        # Asegúrate de cerrar el círculo añadiendo el primer valor al final
+        values += values[:1]
+        angles += angles[:1]
         ax.plot(angles, values, color=to_hex(colores[cluster_id]), linewidth=2)
         ax.fill(angles, values, color=to_hex(colores[cluster_id]), alpha=0.25)
         ax.set_xticks(angles[:-1])
