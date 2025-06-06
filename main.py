@@ -187,32 +187,7 @@ percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for
 fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
 debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-# Radar chart individual
-valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
-valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-valores_radar = valores_dict[jugadora].tolist()
-valores_radar += valores_radar[:1]
-labels = variables + [variables[0]]
-angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
-
-fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
-ax.fill(angles, valores_radar, alpha=0.25)
-ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels)
-ax.set_title(f"Radar de {jugadora}")
-tabs[6].pyplot(fig)
-# --- TAB 7: Scouting Report ---
-jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
-fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-valores = fila[variables]
-percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
-
-# Clasificación en fortalezas y debilidades
-fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
-debilidades = [var for var, pct in percentiles.items() if pct <= 25]
-
-# Radar chart individual
+# Radar chart individual minimalista
 valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
 valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
 valores_radar = valores_dict[jugadora].tolist()
@@ -224,19 +199,35 @@ angles += angles[:1]
 
 labels = variables + [variables[0]]
 
-
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
-ax.plot(angles, valores_radar, linewidth=1, linestyle='solid', color='black', label=jugadora)
-ax.fill(angles, valores_radar, color='black', alpha=0.1)
+# Plot minimalista
+ax.plot(angles, valores_radar, color="#1f77b4", linewidth=2)
+ax.fill(angles, valores_radar, color="#1f77b4", alpha=0.25)
 
+# Estilo minimalista: sin grid, sin etiquetas en radios, sólo etiquetas de variables
+ax.set_yticklabels([])
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels, fontsize=10, color='black')
-ax.set_yticklabels([])  # Oculta etiquetas radiales
-ax.set_title(f"Perfil de {jugadora}", fontsize=14, color='black', pad=20)
+ax.set_xticklabels(labels, fontsize=10, fontweight='bold')
 
-plt.tight_layout()
+ax.spines['polar'].set_visible(False)
+ax.grid(False)
+
+ax.set_title(f"Radar de {jugadora}", fontsize=14, fontweight='bold')
+
 tabs[6].pyplot(fig)
+
+# Informe de texto
+texto = f"**Informe de {jugadora}**\n\n"
+if fortalezas:
+    texto += "🟢 **Fortalezas**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in fortalezas) + "\n"
+if debilidades:
+    texto += "🔴 **Debilidades**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in debilidades) + "\n"
+if not fortalezas and not debilidades:
+    texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
+
+tabs[6].markdown(texto)
+
 
 
 
