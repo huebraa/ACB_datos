@@ -177,52 +177,34 @@ if mostrar_corr:
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
     tabs[5].pyplot(fig)
 
+from scipy.stats import percentileofscore
+
 # --- TAB 7: Scouting Report ---
-from matplotlib.colors import to_rgba
+tabs.append(st.tabs(["📝 Scouting Report"])[0])
 
 jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
 fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-
-# Calcular percentiles
+valores = fila[variables]
 percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
+
+# Clasificación en fortalezas y debilidades
 fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
 debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-# Normalizar valores para radar 0-100 usando MinMaxScaler
-scaler_radar = MinMaxScaler(feature_range=(0, 100))
-valores_array = df_clustered[variables].values
-scaler_radar.fit(valores_array)
-valores_norm = scaler_radar.transform([fila[variables].values])[0]
-valores_radar = valores_norm.tolist()
-valores_radar += valores_radar[:1]  # cerrar círculo
-
-num_vars = len(variables)
-angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
-angles += angles[:1]
+# Radar chart individual
+valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
+valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
+valores_radar = valores_dict[jugadora].tolist()
+valores_radar += valores_radar[:1]
+labels = variables + [variables[0]]
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-color = "#1f77b4"
-rgba_fill = to_rgba(color, alpha=0.25)
-rgba_line = to_rgba(color, alpha=0.8)
-
-# Dibujar círculos guía sutiles (25, 50, 75)
-for r in [25, 50, 75]:
-    ax.plot(np.linspace(0, 2*np.pi, 100), [r]*100, 
-            color='gray', linestyle='--', linewidth=0.5, alpha=0.2)
-
-# Plot radar minimalista
-ax.plot(angles, valores_radar, color=rgba_line, linewidth=2)
-ax.fill(angles, valores_radar, color=rgba_fill)
-
-ax.set_yticklabels([])
+ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
+ax.fill(angles, valores_radar, alpha=0.25)
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(variables, fontsize=11, fontweight='bold', color='black')
-
-ax.spines['polar'].set_visible(False)
-ax.grid(False)
-ax.set_ylim(0, 100)
-ax.set_title(f"Radar de {jugadora}", fontsize=14, fontweight='bold', y=1.1)
-
+ax.set_xticklabels(labels)
+ax.set_title(f"Radar de {jugadora}")
 tabs[6].pyplot(fig)
 
 # Informe de texto
@@ -235,6 +217,7 @@ if not fortalezas and not debilidades:
     texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
 
 tabs[6].markdown(texto)
+
 
 
 
