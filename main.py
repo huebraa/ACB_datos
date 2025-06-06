@@ -10,6 +10,12 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
 import seaborn as sns
 
+import streamlit as st
+st.set_page_config(layout="wide")
+
+
+
+
 # Cargar datos
 df = pd.read_csv('fiba_europe_stats_completo.csv')
 
