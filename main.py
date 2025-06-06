@@ -94,16 +94,23 @@ fig = px.scatter(
 )
 tabs[0].plotly_chart(fig, use_container_width=True)
 
+
 # --- TAB 2: Dendrogramas ---
 if mostrar_dendros:
     df_filt = df_clustered.copy()
-    if len(df_filt) > 2:
+    num_jugadoras = len(df_filt)
+    if num_jugadoras > 2:
         X_all = df_filt[variables].values
         labels_all = df_filt['Player'].values
         linkage_matrix = linkage(X_all, method='ward')
-        fig, ax = plt.subplots(figsize=(20, 7))
-        dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=10)
+        
+        fig_width = max(20, num_jugadoras * 0.3)  # ajusta el factor 0.3 si quieres más o menos espacio
+        fig_height = 10
+        
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+        dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=8)
         tabs[1].pyplot(fig)
+
 
 # --- TAB 3: Radar Charts ---
 if mostrar_radar:
