@@ -51,9 +51,48 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
+
+
 # Mostrar resultados
 st.subheader("Jugadoras por Cluster")
 st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
+
+# --- NUEVA SECCIÓN: JUGADORES SIMILARES ---
+st.subheader("🎯 Buscar jugadores similares")
+
+jugador_seleccionado = st.selectbox("Selecciona un jugador", sorted(df_clustered['Player'].unique()))
+
+if st.button("Recomendar jugadores similares"):
+    X_sim = df_clustered[variables]
+    scaler_sim = StandardScaler()
+    X_scaled_sim = scaler_sim.fit_transform(X_sim)
+    df_scaled_sim = pd.DataFrame(X_scaled_sim, columns=variables, index=df_clustered['Player'])
+
+    if jugador_seleccionado not in df_scaled_sim.index:
+        st.error("Jugador no válido o datos incompletos")
+    else:
+        jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values
+        df_scaled_sim['Distancia'] = df_scaled_sim.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
+        similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
+
+        st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
+        st.dataframe(similares[['Distancia']])
+else:
+    st.write("Selecciona un jugador y pulsa 'Recomendar jugadores similares'.")
+
+# --- NUEVA SECCIÓN: MAPA DE CALOR DE CORRELACIONES ---
+st.subheader("Mapa de calor de correlaciones entre variables")
+
+if len(variables) >= 2:
+    corr_matrix = df_clustered[variables].corr()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5, ax=ax)
+    plt.title('Mapa de calor de correlaciones entre variables')
+
+    st.pyplot(fig)
+else:
+    st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
 
 # Visualización 2D interactiva con Plotly
 st.subheader("Visualización 2D con PCA y Clusters")
@@ -166,39 +205,4 @@ for cluster_id in unique_clusters:
         alerta = "⚠️ DIFERENTE" if row['DistanciaCentroide'] > umbral else ""
         st.write(f"- {row['Player']:<25} Distancia: {row['DistanciaCentroide']:.2f} {alerta}")
 
-# --- NUEVA SECCIÓN: JUGADORES SIMILARES ---
-st.subheader("🎯 Buscar jugadores similares")
 
-jugador_seleccionado = st.selectbox("Selecciona un jugador", sorted(df_clustered['Player'].unique()))
-
-if st.button("Recomendar jugadores similares"):
-    X_sim = df_clustered[variables]
-    scaler_sim = StandardScaler()
-    X_scaled_sim = scaler_sim.fit_transform(X_sim)
-    df_scaled_sim = pd.DataFrame(X_scaled_sim, columns=variables, index=df_clustered['Player'])
-
-    if jugador_seleccionado not in df_scaled_sim.index:
-        st.error("Jugador no válido o datos incompletos")
-    else:
-        jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values
-        df_scaled_sim['Distancia'] = df_scaled_sim.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
-        similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
-
-        st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
-        st.dataframe(similares[['Distancia']])
-else:
-    st.write("Selecciona un jugador y pulsa 'Recomendar jugadores similares'.")
-
-# --- NUEVA SECCIÓN: MAPA DE CALOR DE CORRELACIONES ---
-st.subheader("Mapa de calor de correlaciones entre variables")
-
-if len(variables) >= 2:
-    corr_matrix = df_clustered[variables].corr()
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5, ax=ax)
-    plt.title('Mapa de calor de correlaciones entre variables')
-
-    st.pyplot(fig)
-else:
-    st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
