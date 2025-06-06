@@ -1,77 +1,64 @@
 import streamlit as st
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 
-st.set_page_config(page_title="Clustering Euroliga", layout="wide")
+# Cargar datos
+df = pd.read_csv('fiba_europe_stats_completo.csv')
 
-st.title("🏀 Clustering de Jugadores - Euroliga")
+st.title('Análisis de Clusters - Jugadoras FIBA Europa')
 
-@st.cache_data
-def load_data():
-    return pd.read_csv("fiba_europe_stats_completo.csv")
+# Mostrar primeras filas
+if st.checkbox("Mostrar datos crudos"):
+    st.dataframe(df.head())
 
-df = load_data()
-st.success("Datos cargados correctamente.")
+# Identificar columnas numéricas útiles para clustering
+columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_x', 'Team_y', 'Team_completo', 'Pos']
+columnas_numericas = df.select_dtypes(include='number').columns
+columnas_utiles = [col for col in columnas_numericas if col not in columnas_excluir]
 
-# Mostrar preview de los datos
-st.subheader("📊 Vista previa del dataset")
-st.dataframe(df.head())
+# Selector de variables
+variables = st.multiselect("Selecciona 2 o 3 variables para el clustering:", columnas_utiles, default=columnas_utiles[:3])
 
-# Filtrar automáticamente columnas numéricas útiles
-excluded_cols = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Pos', 
-                 'Team_x', 'Team_y', 'Team_completo']
-numeric_df = df.drop(columns=[col for col in excluded_cols if col in df.columns], errors='ignore')
-numeric_cols = numeric_df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+if len(variables) not in [2, 3]:
+    st.warning("Por favor selecciona exactamente 2 o 3 variables.")
+    st.stop()
 
-st.subheader("🔧 Selección de variables para clustering")
-selected_features = st.multiselect("Selecciona columnas numéricas para usar en el clustering:", 
-                                   numeric_cols, 
-                                   default=['PTS', 'REB', 'AST_x', 'PER'])
+# Limpiar y escalar datos
+X = df[variables].dropna()
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-if len(selected_features) >= 2:
-    X = df[selected_features].dropna()
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+# KMeans
+k = st.slider("Número de clusters", 2, 10, 3)
+kmeans = KMeans(n_clusters=k, random_state=42, n_init='auto')
+clusters = kmeans.fit_predict(X_scaled)
 
-    # Clustering
-    k = st.slider("Selecciona número de clusters (KMeans)", 2, 10, 3)
-    kmeans = KMeans(n_clusters=k, random_state=0)
-    clusters = kmeans.fit_predict(X_scaled)
+# Asociar los clusters al dataframe
+df_clustered = df.loc[X.index].copy()
+df_clustered['Cluster'] = clusters
 
-    df['Cluster'] = -1
-    df.loc[X.index, 'Cluster'] = clusters
+st.success("Clustering realizado correctamente.")
 
-    st.subheader("📋 Resultados")
-    st.dataframe(df[['Player', 'Team_prom'] + selected_features + ['Cluster']])
+# Mostrar resultados
+st.subheader("Jugadoras por Cluster")
+st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
 
-    # Visualización
-    st.subheader("📈 Visualización de Clusters")
-    if len(selected_features) == 2:
-        fig, ax = plt.subplots()
-        sns.scatterplot(
-            x=X[selected_features[0]], 
-            y=X[selected_features[1]], 
-            hue=clusters, 
-            palette="Set2", 
-            ax=ax
-        )
-        ax.set_title("Clusters 2D")
-        st.pyplot(fig)
+# Visualización
+st.subheader("Visualización del Clustering")
 
-    elif len(selected_features) >= 3:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(X[selected_features[0]], X[selected_features[1]], X[selected_features[2]],
-                   c=clusters, cmap="Set2", s=60)
-        ax.set_xlabel(selected_features[0])
-        ax.set_ylabel(selected_features[1])
-        ax.set_zlabel(selected_features[2])
-        ax.set_title("Clusters 3D")
-        st.pyplot(fig)
-
+fig = plt.figure()
+if len(variables) == 2:
+    plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=clusters, cmap='viridis', s=50)
+    plt.xlabel(variables[0])
+    plt.ylabel(variables[1])
 else:
-    st.warning("Selecciona al menos 2 variables para aplicar clustering.")
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(X_scaled[:, 0], X_scaled[:, 1], X_scaled[:, 2], c=clusters, cmap='viridis', s=50)
+    ax.set_xlabel(variables[0])
+    ax.set_ylabel(variables[1])
+    ax.set_zlabel(variables[2])
+
+st.pyplot(fig)
