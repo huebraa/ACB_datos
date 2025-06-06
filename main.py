@@ -32,9 +32,27 @@ if len(variables) < 2:
     st.stop()
 
 # Limpiar y escalar datos
-X = df[variables].dropna()
+# Columnas con porcentaje que pueden venir como strings con '%'
+columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'STL%', 'BLK%', 'USG%']
+
+# Convertir columnas % de string con '%' a float entre 0 y 1
+for col in columnas_porcentaje:
+    if col in df.columns and df[col].dtype == object:
+        df[col] = df[col].str.rstrip('%').replace('', np.nan).astype(float) / 100
+
+# Otras columnas numéricas que pueden contener strings, convertir a float con coerción
+for col in variables:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+# Filtrar las filas sin datos NaN en las variables seleccionadas
+X = df[variables].copy()
+X = X.dropna()
+
+# Escalar los datos
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
+
 
 # Clustering
 k = st.slider("Número de clusters", 2, 10, 3)
