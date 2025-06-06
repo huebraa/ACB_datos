@@ -29,15 +29,6 @@ for col in ['Ast/TO', 'Stl/TO']:
 st.title('Análisis de Clusters - Jugadoras FIBA Europa (2D PCA)')
 
 
-
-# Sidebar para selección de variables y parámetros
-with st.sidebar:
-    st.header("Configuración")
-    variables = st.multiselect("Selecciona variables para clustering", columnas_utiles, default=columnas_utiles[:4])
-    k = st.slider("Número de clusters", 2, 10, 3)
-    jugador_seleccionado = st.selectbox("Selecciona un jugador para recomendación", sorted(df_clustered['Player'].unique()))
-    btn_recomendar = st.button("Recomendar jugadores similares")
-
 # Columnas útiles para clustering
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_x', 'Team_y', 'Team_completo', 'Pos']
 columnas_numericas = df.select_dtypes(include='number').columns
