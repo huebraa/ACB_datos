@@ -211,38 +211,5 @@ for cluster_id in unique_clusters:
         st.write(f"- {row['Player']:<25} Distancia: {row['DistanciaCentroide']:.2f} {alerta}")
 
 
-st.subheader("🎯 Buscar jugadores similares")
 
-with st.form("similares_form"):
-    jugador_seleccionado = st.selectbox("Selecciona un jugador", sorted(df_clustered['Player'].unique()))
-    enviar = st.form_submit_button("Recomendar jugadores similares")
-
-    if enviar:
-        X = df_clustered[variables]
-        scaler_sim = StandardScaler()
-        X_scaled = scaler_sim.fit_transform(X)
-        df_scaled = pd.DataFrame(X_scaled, columns=variables, index=df_clustered['Player'])
-
-        if jugador_seleccionado not in df_scaled.index:
-            st.error("Jugador no válido o datos incompletos")
-        else:
-            jugador_vector = df_scaled.loc[jugador_seleccionado].values
-            df_scaled['Distancia'] = df_scaled.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
-            similares = df_scaled.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
-
-            st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
-            st.dataframe(similares[['Distancia']])
-
-st.subheader("Mapa de calor de correlaciones entre variables")
-
-if len(variables) >= 2:
-    corr_matrix = df_clustered[variables].corr()
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5, ax=ax)
-    plt.title('Mapa de calor de correlaciones entre variables')
-
-    st.pyplot(fig)
-else:
-    st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
 
