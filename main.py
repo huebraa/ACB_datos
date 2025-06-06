@@ -213,29 +213,28 @@ for cluster_id in unique_clusters:
 
 st.subheader("🎯 Buscar jugadores similares")
 
-# Selector de jugador
-jugador_seleccionado = st.selectbox("Selecciona un jugador", sorted(df_clustered['Player'].unique()))
+with st.form("similares_form"):
+    jugador_seleccionado = st.selectbox("Selecciona un jugador", sorted(df_clustered['Player'].unique()))
+    enviar = st.form_submit_button("Recomendar jugadores similares")
 
-if st.button("Recomendar jugadores similares"):
-    # Normalizar las variables usadas en clustering para todos los jugadores filtrados
-    X = df_clustered[variables]
-    scaler_sim = StandardScaler()
-    X_scaled = scaler_sim.fit_transform(X)
-    df_scaled = pd.DataFrame(X_scaled, columns=variables, index=df_clustered['Player'])
+    if enviar:
+        X = df_clustered[variables]
+        scaler_sim = StandardScaler()
+        X_scaled = scaler_sim.fit_transform(X)
+        df_scaled = pd.DataFrame(X_scaled, columns=variables, index=df_clustered['Player'])
 
-    if jugador_seleccionado not in df_scaled.index:
-        st.error("Jugador no válido o datos incompletos")
-    else:
-        jugador_vector = df_scaled.loc[jugador_seleccionado].values
-        df_scaled['Distancia'] = df_scaled.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
-        similares = df_scaled.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
+        if jugador_seleccionado not in df_scaled.index:
+            st.error("Jugador no válido o datos incompletos")
+        else:
+            jugador_vector = df_scaled.loc[jugador_seleccionado].values
+            df_scaled['Distancia'] = df_scaled.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
+            similares = df_scaled.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
 
-        st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
-        st.dataframe(similares[['Distancia']])
+            st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
+            st.dataframe(similares[['Distancia']])
 
 st.subheader("Mapa de calor de correlaciones entre variables")
 
-# Calcular matriz correlación solo si hay variables seleccionadas
 if len(variables) >= 2:
     corr_matrix = df_clustered[variables].corr()
 
@@ -246,3 +245,4 @@ if len(variables) >= 2:
     st.pyplot(fig)
 else:
     st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
+
