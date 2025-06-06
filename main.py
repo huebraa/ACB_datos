@@ -41,6 +41,12 @@ k = st.sidebar.slider("Número de clusters", 2, 10, 3)
 
 mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True)
 mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True)
+cluster_seleccionado = st.sidebar.multiselect(
+    "Seleccionar cluster(s) para dendrograma",
+    options=sorted(df['Cluster'].unique()) if 'Cluster' in df.columns else [],
+    default=sorted(df['Cluster'].unique()) if 'Cluster' in df.columns else []
+)
+
 mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True)
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True)
 
@@ -97,19 +103,37 @@ tabs[0].plotly_chart(fig, use_container_width=True)
 
 # --- TAB 2: Dendrogramas ---
 if mostrar_dendros:
-    df_filt = df_clustered.copy()
+    df_filt = df_clustered[df_clustered['Cluster'].isin(cluster_seleccionado)].copy()
     num_jugadoras = len(df_filt)
     if num_jugadoras > 2:
         X_all = df_filt[variables].values
         labels_all = df_filt['Player'].values
         linkage_matrix = linkage(X_all, method='ward')
         
-        fig_width = max(20, num_jugadoras * 0.3)  # ajusta el factor 0.3 si quieres más o menos espacio
+        fig_width = max(20, num_jugadoras * 0.3)
         fig_height = 10
         
         fig, ax = plt.subplots(figsize=(fig_width, fig_height))
         dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=8)
-        tabs[1].pyplot(fig)
+        
+        tabs[1].markdown("""
+            <style>
+            .scrollable-dendro {
+                overflow-x: auto;
+                width: 100%;
+                border: 1px solid #ddd;
+                padding: 10px;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        with tabs[1].container():
+            tabs[1].markdown('<div class="scrollable-dendro">', unsafe_allow_html=True)
+            tabs[1].pyplot(fig)
+            tabs[1].markdown('</div>', unsafe_allow_html=True)
+    else:
+        tabs[1].write("Selecciona al menos 3 jugadoras para mostrar dendrograma.")
+
 
 
 # --- TAB 3: Radar Charts ---
