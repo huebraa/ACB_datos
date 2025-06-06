@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Cargar datos
 df = pd.read_csv('fiba_europe_stats_completo.csv')
@@ -50,13 +50,32 @@ df_clustered['PCA2'] = X_pca[:, 1]
 st.subheader("Jugadoras por Cluster")
 st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
 
-# Visualización 2D
-st.subheader("Visualización 2D con PCA")
+# Visualización 2D interactiva con Plotly
+st.subheader("Visualización 2D con PCA y Clusters")
 
-fig, ax = plt.subplots()
-scatter = ax.scatter(df_clustered['PCA1'], df_clustered['PCA2'], c=clusters, cmap='tab10', s=60)
-ax.set_xlabel('PCA 1')
-ax.set_ylabel('PCA 2')
-ax.set_title('Clustering en 2D (PCA)')
-st.pyplot(fig)
+fig = px.scatter(
+    df_clustered, x='PCA1', y='PCA2',
+    color='Cluster',
+    hover_data=['Player', 'Team_completo', 'Pos'],
+    color_continuous_scale=px.colors.qualitative.Set2,
+    title="Clustering de Jugadoras - PCA 2D",
+    labels={'PCA1': 'Componente Principal 1', 'PCA2': 'Componente Principal 2'}
+)
 
+fig.update_traces(marker=dict(size=10, line=dict(width=0.5, color='DarkSlateGrey')))
+fig.update_layout(
+    template='simple_white',
+    legend_title_text='Cluster',
+    legend=dict(
+        itemsizing='constant',
+        bgcolor='rgba(0,0,0,0)'
+    ),
+    margin=dict(l=40, r=40, t=40, b=40),
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=12,
+        font_family="Arial"
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
