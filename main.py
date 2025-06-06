@@ -202,14 +202,24 @@ ax.set_xticks(angles[:-1])
 ax.set_xticklabels(labels)
 ax.set_title(f"Radar de {jugadora}")
 tabs[6].pyplot(fig)
-¿Dónde pones el código minimalista?
-Reemplaza el bloque que crea el gráfico radar (desde fig, ax = plt.subplots(...) hasta tabs[6].pyplot(fig)) por el código que te pasé para el estilo minimalista.
+# --- TAB 7: Scouting Report ---
+jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
+fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
+valores = fila[variables]
+percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
 
-Así:
+# Clasificación en fortalezas y debilidades
+fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-python
-Copiar
-Editar
+# Radar chart individual
+valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
+valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
+valores_radar = valores_dict[jugadora].tolist()
+valores_radar += valores_radar[:1]
+labels = variables + [variables[0]]
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
+
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
 ax.plot(angles, valores_radar, linewidth=1, linestyle='solid', color='black', label=jugadora)
@@ -222,5 +232,6 @@ ax.set_title(f"Perfil de {jugadora}", fontsize=14, color='black', pad=20)
 
 plt.tight_layout()
 tabs[6].pyplot(fig)
+
 
 
