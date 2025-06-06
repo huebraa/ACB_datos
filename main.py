@@ -197,7 +197,8 @@ num_vars = len(variables)
 angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
 angles += angles[:1]
 
-labels = variables + [variables[0]]
+labels = variables  # solo las etiquetas originales, sin repetir la primera al final
+
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
