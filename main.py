@@ -7,8 +7,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
-import plotly.express as px
-import seaborn as sns
+
 
 # Cargar datos
 df = pd.read_csv('fiba_europe_stats_completo.csv')
