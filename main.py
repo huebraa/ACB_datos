@@ -191,8 +191,13 @@ valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variabl
 valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
 valores_radar = valores_dict[jugadora].tolist()
 valores_radar += valores_radar[:1]
-labels = variables + [variables[0]]
-angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
+labels = variables + [variables[0]]           # n + 1
+values = valores_radar                        # ya tiene n + 1
+
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)  # n+1
+
+# No agregues [0] extra al final de angles
+
 
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
