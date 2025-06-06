@@ -3,7 +3,9 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
+
 
 # Cargar datos
 df = pd.read_csv('fiba_europe_stats_completo.csv')
