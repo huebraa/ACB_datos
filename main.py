@@ -39,6 +39,7 @@ if len(variables) < 2:
     st.warning("Selecciona al menos 2 variables.")
     st.stop()
 
+# ¡Aquí está el slider para el número de clusters!
 k = st.slider("Número de clusters", 2, 10, 3)
 
 jugador_seleccionado = st.selectbox("Selecciona un jugador para recomendar similares:", sorted(df['Player'].unique()))
@@ -51,11 +52,12 @@ mostrar_radar_charts = st.checkbox("Mostrar radar charts por cluster", value=Fal
 mostrar_atipicos = st.checkbox("Mostrar jugadores atípicos por cluster", value=False)
 mostrar_mapa_calor = st.checkbox("Mostrar mapa de calor de correlaciones", value=True)
 
+# Mostrar datos crudos
 if mostrar_datos:
     st.subheader("Datos crudos")
     st.dataframe(df.head())
 
-# Limpiar columnas con '%'
+# Limpieza de columnas de porcentaje
 columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
 for col in columnas_porcentaje:
     if col in df.columns:
