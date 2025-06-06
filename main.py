@@ -1,12 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import to_hex
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.decomposition import PCA
-from scipy.cluster.hierarchy import linkage, dendrogram
 
 
 # Cargar datos
