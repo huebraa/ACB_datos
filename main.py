@@ -71,7 +71,16 @@ df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
 # --- VISUALIZACIONES EN TABS ---
-tabs = st.tabs(["📊 Clusters", "🌳 Dendrogramas", "📈 Radar", "📏 Diferentes", "🎯 Similares", "🔥 Correlaciones"])
+tabs = st.tabs([
+    "📊 Clusters",
+    "🌳 Dendrogramas",
+    "📈 Radar",
+    "📏 Diferentes",
+    "🎯 Similares",
+    "🔥 Correlaciones",
+    "📝 Scouting Report"
+])
+
 
 # --- TAB 1: Clusters ---
 tabs[0].subheader("Jugadoras por Cluster")
