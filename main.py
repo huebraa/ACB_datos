@@ -213,18 +213,19 @@ with col_der:
         scaler_sim = StandardScaler()
         X_scaled_sim = scaler_sim.fit_transform(X_sim)
         df_scaled_sim = pd.DataFrame(X_scaled_sim, columns=variables, index=df_clustered['Player'])
-
+    
         if jugador_seleccionado not in df_scaled_sim.index:
             st.error("Jugador no válido o datos incompletos")
         else:
-            jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values
-            df_scaled_sim['Distancia'] = df_scaled_sim.apply(lambda row: np.linalg.norm(row.values[:-1] - jugador_vector), axis=1)
-            similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]  # Top 10 similares excluyendo él mismo
-
+            jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values.reshape(1, -1)
+            # Calcular distancias vectorizadas a todos los jugadores
+            distancias = np.linalg.norm(df_scaled_sim.values - jugador_vector, axis=1)
+            df_scaled_sim['Distancia'] = distancias
+    
+            similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]  # Los 10 más similares, excluyendo el mismo
             st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
             st.dataframe(similares[['Distancia']])
-    else:
-        st.write("Selecciona un jugador y pulsa 'Recomendar jugadores similares'.")
+
 
     # Mapa de calor de correlaciones
     if mostrar_mapa_calor:
