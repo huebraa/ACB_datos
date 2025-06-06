@@ -13,6 +13,19 @@ import seaborn as sns
 # Cargar datos
 df = pd.read_csv('fiba_europe_stats_completo.csv')
 
+# Cargar datos
+df = pd.read_csv('fiba_europe_stats_completo.csv')
+
+# --- LIMPIEZA ESPECIAL PARA 'Ast/TO' y 'Stl/TO' ---
+for col in ['Ast/TO', 'Stl/TO']:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col].replace([np.inf, -np.inf], np.nan, inplace=True)
+# --- FIN LIMPIEZA ---
+
+# Ahora ya puedes seleccionar variables, escalar y clusterizar
+
+
 st.title('Análisis de Clusters - Jugadoras FIBA Europa (2D PCA)')
 
 # Mostrar datos
@@ -50,6 +63,8 @@ for col in variables:
 
 # 3. Construir DataFrame para clustering y limpiar NaN e inf
 X = df[variables].copy()
+X = X.replace([np.inf, -np.inf], np.nan).dropna()
+
 
 # Eliminar filas con NaN o Inf
 X = X.replace([np.inf, -np.inf], np.nan).dropna()
