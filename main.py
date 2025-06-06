@@ -178,43 +178,50 @@ if mostrar_corr:
     tabs[5].pyplot(fig)
 
 # --- TAB 7: Scouting Report ---
+from matplotlib.colors import to_rgba
+
 jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
 fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-valores = fila[variables]
-percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
 
-# Clasificación en fortalezas y debilidades
+# Calcular percentiles
+percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
 fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
 debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-# Radar chart individual minimalista
-valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
-valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-valores_radar = valores_dict[jugadora].tolist()
-valores_radar += valores_radar[:1]
+# Normalizar valores para radar 0-100 usando MinMaxScaler
+scaler_radar = MinMaxScaler(feature_range=(0, 100))
+valores_array = df_clustered[variables].values
+scaler_radar.fit(valores_array)
+valores_norm = scaler_radar.transform([fila[variables].values])[0]
+valores_radar = valores_norm.tolist()
+valores_radar += valores_radar[:1]  # cerrar círculo
 
 num_vars = len(variables)
 angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
 angles += angles[:1]
 
-labels = variables  # solo las etiquetas originales, sin repetir la primera al final
-
-
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+color = "#1f77b4"
+rgba_fill = to_rgba(color, alpha=0.25)
+rgba_line = to_rgba(color, alpha=0.8)
 
-# Plot minimalista
-ax.plot(angles, valores_radar, color="#1f77b4", linewidth=2)
-ax.fill(angles, valores_radar, color="#1f77b4", alpha=0.25)
+# Dibujar círculos guía sutiles (25, 50, 75)
+for r in [25, 50, 75]:
+    ax.plot(np.linspace(0, 2*np.pi, 100), [r]*100, 
+            color='gray', linestyle='--', linewidth=0.5, alpha=0.2)
 
-# Estilo minimalista: sin grid, sin etiquetas en radios, sólo etiquetas de variables
+# Plot radar minimalista
+ax.plot(angles, valores_radar, color=rgba_line, linewidth=2)
+ax.fill(angles, valores_radar, color=rgba_fill)
+
 ax.set_yticklabels([])
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(labels, fontsize=10, fontweight='bold')
+ax.set_xticklabels(variables, fontsize=11, fontweight='bold', color='black')
 
 ax.spines['polar'].set_visible(False)
 ax.grid(False)
-
-ax.set_title(f"Radar de {jugadora}", fontsize=14, fontweight='bold')
+ax.set_ylim(0, 100)
+ax.set_title(f"Radar de {jugadora}", fontsize=14, fontweight='bold', y=1.1)
 
 tabs[6].pyplot(fig)
 
@@ -228,6 +235,7 @@ if not fortalezas and not debilidades:
     texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
 
 tabs[6].markdown(texto)
+
 
 
 
