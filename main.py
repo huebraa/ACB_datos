@@ -55,10 +55,12 @@ st.subheader("Visualización 2D con PCA y Clusters")
 
 # Aquí crearías tu gráfico:
 fig = px.scatter(
-    df_pca, x='PC1', y='PC2', color='cluster',
-    hover_data=['Player'], 
-    title='Visualización de Jugadores con PCA y Clustering',
-    template='simple_white'
+    df_clustered, x='PCA1', y='PCA2',
+    color='Cluster',
+    hover_data=['Player', 'Team_completo', 'Pos'],
+    color_continuous_scale=px.colors.qualitative.Set2,
+    title="Clustering de Jugadoras - PCA 2D",
+    labels={'PCA1': 'Componente Principal 1', 'PCA2': 'Componente Principal 2'}
 )
 
 
