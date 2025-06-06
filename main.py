@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
 import seaborn as sns
+from scipy.stats import percentileofscore
 
 # --- CONFIGURACION INICIAL ---
 st.set_page_config(layout="wide", page_title="Cluster Jugadoras FIBA Europa")
@@ -165,3 +166,42 @@ if mostrar_corr:
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
     tabs[5].pyplot(fig)
+
+# --- TAB 7: Scouting Report ---
+tabs.append(st.tabs(["📝 Scouting Report"])[0])
+
+jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
+fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
+valores = fila[variables]
+percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
+
+# Clasificación en fortalezas y debilidades
+fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+
+# Radar chart individual
+valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
+valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
+valores_radar = valores_dict[jugadora].tolist()
+valores_radar += valores_radar[:1]
+labels = variables + [variables[0]]
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist() + [0]
+
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
+ax.fill(angles, valores_radar, alpha=0.25)
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(labels)
+ax.set_title(f"Radar de {jugadora}")
+tabs[6].pyplot(fig)
+
+# Informe de texto
+texto = f"**Informe de {jugadora}**\n\n"
+if fortalezas:
+    texto += "🟢 **Fortalezas**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in fortalezas) + "\n"
+if debilidades:
+    texto += "🔴 **Debilidades**: " + ", ".join(f"{v} (pctl {int(percentiles[v])})" for v in debilidades) + "\n"
+if not fortalezas and not debilidades:
+    texto += "Perfil equilibrado, sin variables particularmente altas o bajas."
+
+tabs[6].markdown(texto)
