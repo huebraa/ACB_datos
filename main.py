@@ -29,30 +29,32 @@ columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_
 columnas_numericas = df.select_dtypes(include='number').columns
 columnas_utiles = [col for col in columnas_numericas if col not in columnas_excluir]
 
-# Sidebar para controles
-with st.sidebar:
-    st.header("Configuración")
-    mostrar_datos = st.checkbox("Mostrar datos crudos")
-    variables = st.multiselect("Variables para clustering:", columnas_utiles, default=columnas_utiles[:4])
+# Configuración en una sola columna
+st.header("Configuración")
 
-    if len(variables) < 2:
-        st.warning("Selecciona al menos 2 variables.")
-        st.stop()
+mostrar_datos = st.checkbox("Mostrar datos crudos")
+variables = st.multiselect("Variables para clustering:", columnas_utiles, default=columnas_utiles[:4])
 
-    k = st.slider("Número de clusters", 2, 10, 3)
+if len(variables) < 2:
+    st.warning("Selecciona al menos 2 variables.")
+    st.stop()
 
-    jugador_seleccionado = st.selectbox("Selecciona un jugador para recomendar similares:", sorted(df['Player'].unique()))
-    btn_similares = st.button("Recomendar jugadores similares")
+k = st.slider("Número de clusters", 2, 10, 3)
 
-    st.markdown("---")
-    st.header("Opciones visualización")
-    mostrar_dendrograma_global = st.checkbox("Mostrar dendrograma global", value=True)
-    mostrar_dendrogramas_por_cluster = st.checkbox("Mostrar dendrogramas por cluster", value=True)
-    mostrar_radar_charts = st.checkbox("Mostrar radar charts por cluster", value=False)
-    mostrar_atipicos = st.checkbox("Mostrar jugadores atípicos por cluster", value=False)
-    mostrar_mapa_calor = st.checkbox("Mostrar mapa de calor de correlaciones", value=True)
+jugador_seleccionado = st.selectbox("Selecciona un jugador para recomendar similares:", sorted(df['Player'].unique()))
 
-# Limpieza y preprocesamiento
+btn_similares = st.button("Recomendar jugadores similares")
+
+mostrar_dendrograma_global = st.checkbox("Mostrar dendrograma global", value=True)
+mostrar_dendrogramas_por_cluster = st.checkbox("Mostrar dendrogramas por cluster", value=True)
+mostrar_radar_charts = st.checkbox("Mostrar radar charts por cluster", value=False)
+mostrar_atipicos = st.checkbox("Mostrar jugadores atípicos por cluster", value=False)
+mostrar_mapa_calor = st.checkbox("Mostrar mapa de calor de correlaciones", value=True)
+
+if mostrar_datos:
+    st.subheader("Datos crudos")
+    st.dataframe(df.head())
+
 # Limpiar columnas con '%'
 columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
 for col in columnas_porcentaje:
@@ -90,58 +92,32 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-# Layout principal con columnas para contenido
-col1, col2 = st.columns([1, 2])
+st.subheader("Jugadoras por Cluster")
+st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
 
-with col1:
-    if mostrar_datos:
-        st.subheader("Datos crudos")
-        st.dataframe(df.head())
+st.subheader("Visualización 2D con PCA y Clusters")
+fig = px.scatter(
+    df_clustered, x='PCA1', y='PCA2',
+    color='Cluster',
+    hover_data=['Player', 'Team_completo', 'Pos'],
+    color_continuous_scale=px.colors.qualitative.Set2,
+    title="Clustering de Jugadoras - PCA 2D",
+    labels={'PCA1': 'Componente Principal 1', 'PCA2': 'Componente Principal 2'}
+)
+fig.update_traces(marker=dict(size=10, line=dict(width=0.5, color='DarkSlateGrey')))
+fig.update_layout(
+    template='simple_white',
+    legend_title_text='Cluster',
+    legend=dict(itemsizing='constant', bgcolor='rgba(0,0,0,0)'),
+    margin=dict(l=40, r=40, t=40, b=40),
+    hoverlabel=dict(bgcolor="white", font_size=12, font_family="Arial"),
+    height=600
+)
+st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Jugadoras por Cluster")
-    st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']].sort_values('Cluster'))
-
-with col2:
-    st.subheader("Visualización 2D con PCA y Clusters")
-    fig = px.scatter(
-        df_clustered, x='PCA1', y='PCA2',
-        color='Cluster',
-        hover_data=['Player', 'Team_completo', 'Pos'],
-        color_discrete_sequence=px.colors.qualitative.Set2,
-        title="Clustering de Jugadoras - PCA 2D",
-        labels={'PCA1': 'Componente Principal 1', 'PCA2': 'Componente Principal 2'}
-    )
-    fig.update_traces(marker=dict(size=10, line=dict(width=0.5, color='DarkSlateGrey')))
-    fig.update_layout(
-        template='simple_white',
-        legend_title_text='Cluster',
-        legend=dict(itemsizing='constant', bgcolor='rgba(0,0,0,0)'),
-        margin=dict(l=40, r=40, t=40, b=40),
-        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Arial"),
-        height=600
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Resultados de jugadores similares solo si se presionó el botón
-    if btn_similares:
-        st.subheader("🎯 Jugadores similares a " + jugador_seleccionado)
-        X_sim = df_clustered[variables]
-        scaler_sim = StandardScaler()
-        X_scaled_sim = scaler_sim.fit_transform(X_sim)
-        df_scaled_sim = pd.DataFrame(X_scaled_sim, columns=variables, index=df_clustered['Player'])
-
-        if jugador_seleccionado not in df_scaled_sim.index:
-            st.error("Jugador no válido o datos incompletos")
-        else:
-            jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values.reshape(1, -1)
-            distancias = np.linalg.norm(df_scaled_sim.values - jugador_vector, axis=1)
-            df_scaled_sim['Distancia'] = distancias
-
-            similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]
-            st.dataframe(similares[['Distancia']])
-
-# Secciones opcionales dentro de expanders
-with st.expander("🌳 Dendrograma jerárquico global", expanded=mostrar_dendrograma_global):
+# Dendrograma global
+if mostrar_dendrograma_global:
+    st.subheader("🌳 Dendrograma jerárquico global")
     if len(df_clustered) > 2:
         X_all = df_clustered[variables].values
         labels_all = df_clustered['Player'].values
@@ -155,7 +131,9 @@ with st.expander("🌳 Dendrograma jerárquico global", expanded=mostrar_dendrog
     else:
         st.info("⚠️ Muy pocos jugadores para dendrograma global.")
 
-with st.expander("🌳 Dendrogramas por cluster", expanded=mostrar_dendrogramas_por_cluster):
+# Dendrogramas por cluster
+if mostrar_dendrogramas_por_cluster:
+    st.subheader("🌳 Dendrogramas por cluster")
     unique_clusters = sorted(df_clustered['Cluster'].unique())
     colores = plt.cm.viridis(np.linspace(0, 1, len(unique_clusters)))
     for idx, cluster_id in enumerate(unique_clusters):
@@ -171,7 +149,9 @@ with st.expander("🌳 Dendrogramas por cluster", expanded=mostrar_dendrogramas_
         ax.set_title(f"🌳 Dendrograma - Cluster {cluster_id}", fontsize=14)
         st.pyplot(fig)
 
-with st.expander("📊 Radar charts por cluster", expanded=mostrar_radar_charts):
+# Radar charts por cluster
+if mostrar_radar_charts:
+    st.subheader("📊 Radar charts por cluster")
     unique_clusters = sorted(df_clustered['Cluster'].unique())
     colores = plt.cm.viridis(np.linspace(0, 1, len(unique_clusters)))
     for idx, cluster_id in enumerate(unique_clusters):
@@ -197,7 +177,9 @@ with st.expander("📊 Radar charts por cluster", expanded=mostrar_radar_charts)
         ax.set_title(f"Radar (0-100) - Cluster {cluster_id}", fontsize=14)
         st.pyplot(fig)
 
-with st.expander("📏 Jugadores más alejados del centroide por cluster", expanded=mostrar_atipicos):
+# Jugadores más alejados del centroide
+if mostrar_atipicos:
+    st.subheader("📏 Jugadores más alejados del centroide por cluster")
     unique_clusters = sorted(df_clustered['Cluster'].unique())
     for cluster_id in unique_clusters:
         subset = df_clustered[df_clustered['Cluster'] == cluster_id]
@@ -222,14 +204,33 @@ with st.expander("📏 Jugadores más alejados del centroide por cluster", expan
             alerta = "⚠️ DIFERENTE" if row['DistanciaCentroide'] > umbral else ""
             st.write(f"- {row['Player']:<25} Distancia: {row['DistanciaCentroide']:.2f} {alerta}")
 
-with st.expander("Mapa de calor de correlaciones entre variables", expanded=mostrar_mapa_calor):
+# Jugadores similares
+st.subheader("🎯 Buscar jugadores similares")
+if btn_similares:
+    X_sim = df_clustered[variables]
+    scaler_sim = StandardScaler()
+    X_scaled_sim = scaler_sim.fit_transform(X_sim)
+    df_scaled_sim = pd.DataFrame(X_scaled_sim, columns=variables, index=df_clustered['Player'])
+
+    if jugador_seleccionado not in df_scaled_sim.index:
+        st.error("Jugador no válido o datos incompletos")
+    else:
+        jugador_vector = df_scaled_sim.loc[jugador_seleccionado].values.reshape(1, -1)
+        distancias = np.linalg.norm(df_scaled_sim.values - jugador_vector, axis=1)
+        df_scaled_sim['Distancia'] = distancias
+
+        similares = df_scaled_sim.sort_values(by='Distancia').iloc[1:11]
+        st.write(f"Jugadores más similares a **{jugador_seleccionado}**:")
+        st.dataframe(similares[['Distancia']])
+
+# Mapa de calor de correlaciones
+if mostrar_mapa_calor:
+    st.subheader("Mapa de calor de correlaciones entre variables")
     if len(variables) >= 2:
-        corr_matrix = df_clustered[variables].corr()
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5, ax=ax)
-        plt.title('Mapa de calor de correlaciones entre variables')
-
+        corr = df_clustered[variables].corr()
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1, ax=ax)
         st.pyplot(fig)
     else:
-        st.info("Selecciona al menos 2 variables para mostrar el mapa de calor.")
+        st.info("Selecciona al menos dos variables para el mapa de calor.")
+
