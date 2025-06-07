@@ -88,10 +88,18 @@ tabs[0].subheader("Jugadoras por Cluster")
 tabs[0].dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']])
 
 fig = px.scatter(
-    df_clustered, x='PCA1', y='PCA2', color='Cluster',
+    df_clustered,
+    x='PCA1',
+    y='PCA2',
+    color=df_clustered['Cluster'].astype(str),  # tratar clusters como categorías
     hover_data=['Player', 'Team_completo', 'Pos'],
-    title="PCA 2D - Clustering de Jugadoras"
+    title="PCA 2D - Clustering de Jugadoras",
+    color_discrete_sequence=px.colors.qualitative.Set1,  # puedes probar: Set2, Set3, Pastel1, Plotly, etc.
 )
+
+fig.update_traces(marker=dict(size=10, line=dict(width=1, color='DarkSlateGrey')))
+fig.update_layout(legend_title_text='Cluster')
+
 tabs[0].plotly_chart(fig, use_container_width=True)
 
 
