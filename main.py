@@ -14,7 +14,7 @@ from scipy.stats import percentileofscore
 from sklearn.preprocessing import MinMaxScaler
 
 # --- CONFIGURACION INICIAL ---
-st.set_page_config(layout="wide", page_title="Cluster Jugadoras FIBA Europa")
+st.set_page_config(layout="wide", page_title="Perfiles Jugador")
 
 # --- SIDEBAR ---
 st.sidebar.title("Configuración")
@@ -84,7 +84,7 @@ tabs = st.tabs([
 
 
 # --- TAB 1: Clusters ---
-tabs[0].subheader("Jugadoras por Cluster")
+tabs[0].subheader("Jugadores por Cluster")
 tabs[0].dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']])
 
 fig = px.scatter(
@@ -93,7 +93,7 @@ fig = px.scatter(
     y='PCA2',
     color=df_clustered['Cluster'].astype(str),  # tratar clusters como categorías
     hover_data=['Player', 'Team_completo', 'Pos'],
-    title="PCA 2D - Clustering de Jugadoras",
+    title="PCA 2D - Clustering de Jugadores",
     color_discrete_sequence=px.colors.qualitative.Set1,  # puedes probar: Set2, Set3, Pastel1, Plotly, etc.
 )
 
