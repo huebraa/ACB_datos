@@ -38,25 +38,13 @@ st.sidebar.title("Configuración")
 posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()))
 equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()))
 
-# --- FILTROS EN SIDEBAR ---
-st.sidebar.title("Configuración")
-
-posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()))
-equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()))
-
-if posiciones:
-    df = df[df['Pos'].isin(posiciones)]
-if equipos:
-    df = df[df['Team_completo'].isin(equipos)]
-
-# Filtro por minutos jugados
-min_min = int(df['MIN'].min())
-max_min = int(df['MIN'].max())
-minutos_seleccionados = st.sidebar.slider("Filtrar por minutos jugados (MIN)", min_min, max_min, (min_min, max_min))
-
-df = df[(df['MIN'] >= minutos_seleccionados[0]) & (df['MIN'] <= minutos_seleccionados[1])]
-
-
+def aplicar_filtros(df, posiciones, equipos):
+    df_filt = df.copy()
+    if posiciones:
+        df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
+    if equipos:
+        df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
+    return df_filt
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos)
 
