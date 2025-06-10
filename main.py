@@ -24,11 +24,11 @@ def cargar_y_preparar_datos(path):
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df[col].replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    columnas_porcentaje = ['3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
+    columnas_porcentaje = ['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'ORB%', 'DRB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
+    
     for col in columnas_porcentaje:
         if col in df.columns:
-            df[col] = df[col].astype(str).str.rstrip('%').replace('', np.nan)
-            df[col] = pd.to_numeric(df[col], errors='coerce') / 100
+            df[col] = pd.to_numeric(df[col], errors='coerce')  # Solo convertir a float, no dividir
 
     # Convertir columnas numéricas a float32 para ahorrar memoria
     columnas_numericas = df.select_dtypes(include='number').columns
