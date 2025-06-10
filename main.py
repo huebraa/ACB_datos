@@ -133,29 +133,34 @@ with tabs[0]:
     fig.update_layout(legend_title_text='Cluster')
     st.plotly_chart(fig, use_container_width=True)
 
-# TAB 2: Dendrogramas
+import plotly.figure_factory as ff
+
 with tabs[1]:
     if mostrar_dendros:
-        clusters_unicos = sorted(df_clustered['Cluster'].unique())
-        cluster_sel = st.selectbox(
-            "Filtrar dendrograma por cluster",
-            options=[-1] + clusters_unicos,
-            format_func=lambda x: "Todos" if x == -1 else f"Cluster {x}",
-            key="cluster_dendro"
-        )
+        if len(df_clustered) > 2:
+            # Selección de cluster para filtrar dendrograma (opcional)
+            cluster_opciones = ['Todos'] + sorted(df_clustered['Cluster'].unique().tolist())
+            cluster_seleccionado = st.selectbox("Filtrar dendrograma por cluster", cluster_opciones, key="filtro_dendro")
 
-        if cluster_sel == -1:
-            df_dendro = df_clustered
-        else:
-            df_dendro = df_clustered[df_clustered['Cluster'] == cluster_sel]
+            if cluster_seleccionado == 'Todos':
+                df_dendro = df_clustered
+            else:
+                df_dendro = df_clustered[df_clustered['Cluster'] == cluster_seleccionado]
 
-        if len(df_dendro) > 2:
-            linkage_matrix = linkage(df_dendro[vars_seleccionadas], method='ward')
-            fig = ff.create_dendrogram(df_dendro[vars_seleccionadas], labels=df_dendro['Player'].values, linkagefun=lambda x: linkage_matrix)
-            fig.update_layout(width=1000, height=600)
-            st.plotly_chart(fig)
+            if len(df_dendro) > 2:
+                fig = ff.create_dendrogram(
+                    df_dendro[vars_seleccionadas],
+                    labels=df_dendro['Player'].values,
+                    linkagefun='ward',
+                    orientation='left'
+                )
+                fig.update_layout(width=800, height=600, title='Dendrograma interactivo')
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No hay suficientes jugadores para generar dendrograma en este filtro.")
         else:
-            st.info("Pocos datos para dendrograma en este cluster.")
+            st.info("Pocos datos para dendrograma.")
+
 
 # TAB 3: Radar
 with tabs[2]:
