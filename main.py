@@ -1,3 +1,4 @@
+# streamlit_app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,53 +15,26 @@ from scipy.stats import percentileofscore
 # --- CONFIGURACION INICIAL ---
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
-# --- CONSTANTES ---
-columnas_porcentaje = ['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'ORB%', 'DRB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
-columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
+# --- CARGA DE DATOS ---
+df = pd.read_csv("estadisticas_acb_2025.csv")
 
-# --- FUNCIONES ---
-
-@st.cache_data(show_spinner=False)
-def cargar_y_limpiar_datos(path):
-    df = pd.read_csv(path)
-
-    # Convertir columnas porcentaje a float32
-    for col in columnas_porcentaje:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').astype('float32')
-
-    # Convertir otras columnas numéricas a float32 para ahorrar memoria
-    for col in df.select_dtypes(include=['float64', 'int64']).columns:
-        if col not in columnas_porcentaje:
-            df[col] = pd.to_numeric(df[col], errors='coerce').astype('float32')
-
-    # Convertir columnas categóricas a category
-    for col in ['Pos', 'Team_completo']:
-        if col in df.columns:
-            df[col] = df[col].astype('category')
-
-    # Limpieza básica, eliminar filas con Player vacío o NaN en variables clave
-    df.dropna(subset=['Player'], inplace=True)
-
-    # Opcional: si el dataset es muy grande, tomar muestra pequeña para test (comenta si no quieres)
-    # if len(df) > 1000:
-    #     df = df.sample(1000, random_state=42).reset_index(drop=True)
-
-    return df
-
-# Carga con cache
-df = cargar_y_limpiar_datos("estadisticas_acb_2025.csv")
-
-# Convertir a numéricas para clustering las columnas que seleccionaremos luego
-for col in columnas_porcentaje:
+# LIMPIEZA DE DATOS
+for col in ['Ast/TO', 'Stl/TO']:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col].replace([np.inf, -np.inf], np.nan, inplace=True)
+
+columnas_porcentaje = ['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'ORB%', 'DRB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
+
+for col in columnas_porcentaje:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')  # Solo convertir a float, no dividir
 
 # FILTROS EN SIDEBAR
 st.sidebar.title("Configuración")
 
-posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].cat.categories) if 'Pos' in df else [])
-equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].cat.categories) if 'Team_completo' in df else [])
+posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()))
+equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()))
 
 df_filtrado = df.copy()
 if posiciones:
@@ -69,6 +43,7 @@ if equipos:
     df_filtrado = df_filtrado[df_filtrado['Team_completo'].isin(equipos)]
 
 # VARIABLES NUMÉRICAS PARA CLUSTERING
+columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 columnas_utiles = [col for col in columnas_numericas if col not in columnas_excluir]
 
@@ -80,29 +55,33 @@ mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True)
 mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True)
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True)
 
-# PROCESAMIENTO
+# PROCESAMIENTO CACHEADO
+@st.cache_data(show_spinner=False)
+def procesar_clustering(df_local, variables_local, k_local):
+    X_local = df_local[variables_local].dropna()
+    scaler_local = StandardScaler()
+    X_scaled_local = scaler_local.fit_transform(X_local)
+
+    kmeans_local = KMeans(n_clusters=k_local, random_state=42, n_init='auto')
+    clusters_local = kmeans_local.fit_predict(X_scaled_local)
+
+    pca_local = PCA(n_components=2)
+    X_pca_local = pca_local.fit_transform(X_scaled_local)
+
+    return clusters_local, X_pca_local, scaler_local, kmeans_local, pca_local
+
 if len(variables) < 2:
     st.error("Selecciona al menos 2 variables para continuar.")
     st.stop()
 
-for col in variables:
-    df_filtrado[col] = pd.to_numeric(df_filtrado[col], errors='coerce')
-
-X = df_filtrado[variables].replace([np.inf, -np.inf], np.nan).dropna()
-if X.empty:
-    st.error("No hay datos válidos para clustering.")
+# Ejecutar función cacheada
+try:
+    clusters, X_pca, scaler, kmeans, pca = procesar_clustering(df_filtrado, variables, k)
+except Exception as e:
+    st.error(f"Error en clustering: {e}")
     st.stop()
 
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)  # n_init int para evitar warning
-clusters = kmeans.fit_predict(X_scaled)
-
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X_scaled)
-
-df_clustered = df_filtrado.loc[X.index].copy()
+df_clustered = df_filtrado.loc[df_filtrado[variables].dropna().index].copy()
 df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
@@ -120,7 +99,8 @@ tabs = st.tabs([
 
 # TAB 1: Clusters
 tabs[0].subheader("Jugadores por Cluster")
-tabs[0].dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables])
+tabs[0].dataframe(
+    df_clustered[['Player', 'Team_completo', 'Pos'] + variables])
 
 fig = px.scatter(
     df_clustered,
@@ -200,26 +180,20 @@ for cluster_id in sorted(df_clustered['Cluster'].unique()):
 # TAB 5: Jugadores similares
 if mostrar_similares:
     jugador = tabs[4].selectbox("Selecciona una jugadora", df_clustered['Player'].unique())
-    if jugador:
-        base = df_clustered[df_clustered['Player'] == jugador]
-        if not base.empty:
-            base_vec = base[variables].values[0]
-            others = df_clustered[df_clustered['Player'] != jugador].copy()
-            others_vecs = others[variables].values
-            distancias = np.linalg.norm(others_vecs - base_vec, axis=1)
-            others['DistanciaJugador'] = distancias
-            similares = others.sort_values('DistanciaJugador').head(10)
-            tabs[4].write(f"Jugadores más similares a **{jugador}**")
-            tabs[4].dataframe(similares[['Player', 'DistanciaJugador'] + variables])
+    if tabs[4].button("Buscar similares"):
+        X_sim = StandardScaler().fit_transform(df_clustered[variables])
+        df_sim = pd.DataFrame(X_sim, index=df_clustered['Player'], columns=variables)
+        jugador_vector = df_sim.loc[jugador].values
+        df_sim['Distancia'] = df_sim.apply(lambda row: np.linalg.norm(row.values - jugador_vector), axis=1)
+        similares = df_sim.sort_values(by='Distancia').iloc[1:6]
+        tabs[4].dataframe(similares[['Distancia']])
 
 # TAB 6: Correlaciones
 if mostrar_corr:
-    tabs[5].subheader("Mapa de calor de correlaciones")
-    corr = df_clustered[variables].corr()
-    fig, ax = plt.subplots(figsize=(12, 10))
-    sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
+    corr_matrix = df_clustered[variables].corr()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
     tabs[5].pyplot(fig)
-
 
 # TAB 7: Scouting Report
 def generar_texto_scouting(fortalezas, debilidades, percentiles):
@@ -262,4 +236,3 @@ tabs[6].markdown("_Valores normalizados (0-100) para comparación entre variable
 
 texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
 tabs[6].markdown(texto)
-
