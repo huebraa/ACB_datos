@@ -6,9 +6,8 @@ from matplotlib.colors import to_hex
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
-from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage, dendrogram
 import plotly.express as px
-import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
 
@@ -36,48 +35,32 @@ df = cargar_datos()
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
-posiciones = st.sidebar.multiselect(
-    "Filtrar por posición",
-    sorted(df['Pos'].dropna().unique()),
-    key="posiciones",
-    default=st.session_state.get("posiciones", [])
-)
+posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()), key="posiciones")
+equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()), key="equipos")
 
-equipos = st.sidebar.multiselect(
-    "Filtrar por equipo",
-    sorted(df['Team_completo'].dropna().unique()),
-    key="equipos",
-    default=st.session_state.get("equipos", [])
-)
+min_min = int(df['MIN'].min())
+max_min = int(df['MIN'].max())
+minutos_seleccionados = st.sidebar.slider("Filtrar por minutos jugados (MIN)", min_min, max_min, (min_min, max_min), key="minutos")
 
-def aplicar_filtros(df, posiciones, equipos):
+def aplicar_filtros(df, posiciones, equipos, minutos):
     df_filt = df.copy()
     if posiciones:
         df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
     if equipos:
         df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
+    if minutos:
+        df_filt = df_filt[(df_filt['MIN'] >= minutos[0]) & (df_filt['MIN'] <= minutos[1])]
     return df_filt
 
-df_filtrado = aplicar_filtros(df, posiciones, equipos)
+df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
-vars_seleccionadas = st.sidebar.multiselect(
-    "Variables para clustering",
-    variables,
-    default=st.session_state.get("vars_seleccionadas", variables[:5]),
-    key="vars_seleccionadas"
-)
-
-k = st.sidebar.slider(
-    "Número de clusters",
-    2, 10, 
-    value=st.session_state.get("k", 3),
-    key="k"
-)
+vars_seleccionadas = st.sidebar.multiselect("Variables para clustering", variables, default=variables[:5], key="vars_seleccionadas")
+k = st.sidebar.slider("Número de clusters", 2, 10, 3, key="num_clusters")
 
 mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True, key="mostrar_radar")
 mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar_dendros")
@@ -129,7 +112,6 @@ tabs = st.tabs([
     "🔥 Correlaciones",
     "📝 Scouting Report"
 ])
-
 # TAB 1: Clusters
 with tabs[0]:
     st.subheader("Jugadores por Cluster")
