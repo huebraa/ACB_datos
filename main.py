@@ -55,7 +55,7 @@ def clustering_pca(X, n_clusters):
     X_pca = pca.fit_transform(X_scaled)
     return clusters, X_pca
 
-df = cargar_y_preparar_datos("fiba_europe_stats_completo.csv")
+df = cargar_y_preparar_datos("estadisticas_acb_2025.csv")
 
 # Excluir columnas no numéricas ni relevantes para clustering
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_x', 'Team_y', 'Team_completo', 'Pos']
