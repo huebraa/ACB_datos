@@ -138,10 +138,44 @@ def aplicar_pca(X_scaled_local):
 
 X_pca, pca = aplicar_pca(X_scaled)
 
+def etiquetar_cluster_mejorado(row):
+    etiquetas = []
+
+    if row.get('AST', 0) >= 4 and row.get('AST/TO', 0) >= 2:
+        etiquetas.append("Playmaker")
+
+    if row.get('3P%', 0) >= 37 and row.get('eFG%', 0) >= 55:
+        etiquetas.append("Tirador")
+
+    if row.get('3P%', 0) >= 36 and row.get('STL', 0) >= 1.3:
+        etiquetas.append("3&D")
+
+    if row.get('BLK', 0) >= 1.5 and row.get('DRB%', 0) >= 20:
+        etiquetas.append("Interior Defensivo")
+
+    if row.get('FG%', 0) >= 52 and row.get('USG%', 0) >= 22:
+        etiquetas.append("Slasher")
+
+    if row.get('TRB%', 0) >= 18 and row.get('USG%', 0) <= 14:
+        etiquetas.append("Reboteador Puro")
+
+    if 2 <= row.get('AST', 0) <= 4 and row.get('USG%', 0) >= 20:
+        etiquetas.append("Creador Secundario")
+
+    if not etiquetas:
+        return "Perfil Mixto"
+
+    return ", ".join(etiquetas)
+
+
 df_clustered = df_clustered.reset_index(drop=True)
 df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
+resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
+resumen['Etiqueta'] = resumen.apply(etiquetar_cluster_mejorado, axis=1)
+df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
+
 
 # --- VISUALIZACIONES ---
 tabs = st.tabs([
@@ -157,7 +191,7 @@ tabs = st.tabs([
 # TAB 1: Clusters
 with tabs[0]:
     st.subheader("Jugadores por Cluster")
-    st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + vars_seleccionadas])
+    st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos', 'Cluster', 'ClusterEtiqueta'] + vars_seleccionadas])
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
@@ -166,11 +200,12 @@ with tabs[0]:
     fig = px.scatter(
         df_clustered,
         x='PCA1', y='PCA2',
-        color=df_clustered['Cluster'].astype(str),
+        color='ClusterEtiqueta',
         hover_data=['Player', 'Team_completo', 'Pos'],
         title="PCA 2D - Clustering de Jugadores",
         color_discrete_sequence=px.colors.qualitative.Set1
     )
+
     fig.update_traces(marker=dict(size=10, line=dict(width=1, color='DarkSlateGrey')))
     fig.update_layout(legend_title_text='Cluster')
     st.plotly_chart(fig, use_container_width=True)
