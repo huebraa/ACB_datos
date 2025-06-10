@@ -35,31 +35,37 @@ df = cargar_datos()
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
-posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()))
-equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()))
+posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()), key="posiciones")
+equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()), key="equipos")
 
-def aplicar_filtros(df, posiciones, equipos):
+min_min = int(df['MIN'].min())
+max_min = int(df['MIN'].max())
+minutos_seleccionados = st.sidebar.slider("Filtrar por minutos jugados (MIN)", min_min, max_min, (min_min, max_min), key="minutos")
+
+def aplicar_filtros(df, posiciones, equipos, minutos):
     df_filt = df.copy()
     if posiciones:
         df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
     if equipos:
         df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
+    if minutos:
+        df_filt = df_filt[(df_filt['MIN'] >= minutos[0]) & (df_filt['MIN'] <= minutos[1])]
     return df_filt
 
-df_filtrado = aplicar_filtros(df, posiciones, equipos)
+df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
-vars_seleccionadas = st.sidebar.multiselect("Variables para clustering", variables, default=variables[:5])
-k = st.sidebar.slider("Número de clusters", 2, 10, 3)
+vars_seleccionadas = st.sidebar.multiselect("Variables para clustering", variables, default=variables[:5], key="vars_seleccionadas")
+k = st.sidebar.slider("Número de clusters", 2, 10, 3, key="num_clusters")
 
-mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True)
-mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True)
-mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True)
-mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True)
+mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True, key="mostrar_radar")
+mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar_dendros")
+mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key="mostrar_similares")
+mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
 
 if len(vars_seleccionadas) < 2:
     st.error("Selecciona al menos 2 variables.")
@@ -106,7 +112,6 @@ tabs = st.tabs([
     "🔥 Correlaciones",
     "📝 Scouting Report"
 ])
-
 # TAB 1: Clusters
 with tabs[0]:
     st.subheader("Jugadores por Cluster")
