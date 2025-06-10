@@ -36,29 +36,49 @@ df = cargar_datos()
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
+# Inicializar session_state para filtros
+if "posiciones" not in st.session_state:
+    st.session_state.posiciones = []
+if "equipos" not in st.session_state:
+    st.session_state.equipos = []
+if "minutos" not in st.session_state:
+    st.session_state.minutos = (int(df['MIN'].min()), int(df['MIN'].max()))
+
 posiciones = st.sidebar.multiselect(
     "Filtrar por posición",
     sorted(df['Pos'].dropna().unique()),
-    key="posiciones",
-    default=st.session_state.get("posiciones", [])
+    default=st.session_state.posiciones,
+    key="posiciones"
 )
 
 equipos = st.sidebar.multiselect(
     "Filtrar por equipo",
     sorted(df['Team_completo'].dropna().unique()),
-    key="equipos",
-    default=st.session_state.get("equipos", [])
+    default=st.session_state.equipos,
+    key="equipos"
 )
 
-def aplicar_filtros(df, posiciones, equipos):
+min_min = int(df['MIN'].min())
+max_min = int(df['MIN'].max())
+minutos_seleccionados = st.sidebar.slider(
+    "Filtrar por minutos jugados (MIN)",
+    min_min,
+    max_min,
+    value=st.session_state.minutos,
+    key="minutos"
+)
+
+def aplicar_filtros(df, posiciones, equipos, minutos):
     df_filt = df.copy()
     if posiciones:
         df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
     if equipos:
         df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
+    if minutos:
+        df_filt = df_filt[(df_filt['MIN'] >= minutos[0]) & (df_filt['MIN'] <= minutos[1])]
     return df_filt
 
-df_filtrado = aplicar_filtros(df, posiciones, equipos)
+df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
@@ -74,7 +94,7 @@ vars_seleccionadas = st.sidebar.multiselect(
 
 k = st.sidebar.slider(
     "Número de clusters",
-    2, 10, 
+    2, 10,
     value=st.session_state.get("k", 3),
     key="k"
 )
@@ -169,7 +189,11 @@ with tabs[1]:
 
         if len(df_dendro) > 2:
             linkage_matrix = linkage(df_dendro[vars_seleccionadas], method='ward')
-            fig = ff.create_dendrogram(df_dendro[vars_seleccionadas], labels=df_dendro['Player'].values, linkagefun=lambda x: linkage_matrix)
+            fig = ff.create_dendrogram(
+                df_dendro[vars_seleccionadas],
+                labels=df_dendro['Player'].values,
+                linkagefun=lambda x: linkage_matrix
+            )
             fig.update_layout(width=1000, height=600)
             st.plotly_chart(fig)
         else:
@@ -217,24 +241,21 @@ with tabs[3]:
         cluster_data['DistanciaCentroide'] = distances
         top5 = cluster_data.sort_values(by='DistanciaCentroide', ascending=False).head(5)
         st.write(f"**Cluster {cluster_id}**")
-        st.dataframe(top5[['Player', 'Team_completo', 'Pos', 'DistanciaCentroide'] + vars_seleccionadas])
+        st.dataframe(top5[['Player', 'Pos', 'Team_completo', 'DistanciaCentroide'] + vars_seleccionadas])
 
 # TAB 5: Jugadores similares
 with tabs[4]:
     if mostrar_similares:
-        st.subheader("Buscar Jugadores Similares")
-
-        jugador_sel = st.selectbox("Selecciona un jugador:", df_clustered['Player'].sort_values().unique(), key="jugador_similar")
-        if jugador_sel:
-            jugador_info = df_clustered[df_clustered['Player'] == jugador_sel].iloc[0]
-            centroid = kmeans.cluster_centers_[jugador_info['Cluster']]
-            distancias = np.linalg.norm(X_scaled - centroid, axis=1)
-            similars_idx = np.argsort(distancias)[:6]
-            similars = df_clustered.iloc[similars_idx]
-            similars = similars[similars['Player'] != jugador_sel]
-
-            st.write(f"Jugadores similares a **{jugador_sel}** (Cluster {jugador_info['Cluster']}):")
-            st.dataframe(similars[['Player', 'Team_completo', 'Pos'] + vars_seleccionadas])
+        st.subheader("Buscar jugadores similares")
+        jugador = st.selectbox("Selecciona un jugador", df_clustered['Player'].sort_values().unique())
+        jugador_data = df_clustered[df_clustered['Player'] == jugador][vars_seleccionadas]
+        if jugador_data.empty:
+            st.warning("Jugador no encontrado.")
+        else:
+            jugador_vals = jugador_data.values[0]
+            df_clustered['DistSim'] = np.linalg.norm(df_clustered[vars_seleccionadas] - jugador_vals, axis=1)
+            similares = df_clustered[df_clustered['Player'] != jugador].sort_values('DistSim').head(10)
+            st.dataframe(similares[['Player', 'Pos', 'Team_completo', 'Cluster', 'DistSim'] + vars_seleccionadas])
 
 # TAB 6: Correlaciones
 with tabs[5]:
