@@ -6,8 +6,9 @@ from matplotlib.colors import to_hex
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import linkage
 import plotly.express as px
+import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
 
@@ -35,32 +36,48 @@ df = cargar_datos()
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
-posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()), key="posiciones")
-equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()), key="equipos")
+posiciones = st.sidebar.multiselect(
+    "Filtrar por posición",
+    sorted(df['Pos'].dropna().unique()),
+    key="posiciones",
+    default=st.session_state.get("posiciones", [])
+)
 
-min_min = int(df['MIN'].min())
-max_min = int(df['MIN'].max())
-minutos_seleccionados = st.sidebar.slider("Filtrar por minutos jugados (MIN)", min_min, max_min, (min_min, max_min), key="minutos")
+equipos = st.sidebar.multiselect(
+    "Filtrar por equipo",
+    sorted(df['Team_completo'].dropna().unique()),
+    key="equipos",
+    default=st.session_state.get("equipos", [])
+)
 
-def aplicar_filtros(df, posiciones, equipos, minutos):
+def aplicar_filtros(df, posiciones, equipos):
     df_filt = df.copy()
     if posiciones:
         df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
     if equipos:
         df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
-    if minutos:
-        df_filt = df_filt[(df_filt['MIN'] >= minutos[0]) & (df_filt['MIN'] <= minutos[1])]
     return df_filt
 
-df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
+df_filtrado = aplicar_filtros(df, posiciones, equipos)
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
-vars_seleccionadas = st.sidebar.multiselect("Variables para clustering", variables, default=variables[:5], key="vars_seleccionadas")
-k = st.sidebar.slider("Número de clusters", 2, 10, 3, key="num_clusters")
+vars_seleccionadas = st.sidebar.multiselect(
+    "Variables para clustering",
+    variables,
+    default=st.session_state.get("vars_seleccionadas", variables[:5]),
+    key="vars_seleccionadas"
+)
+
+k = st.sidebar.slider(
+    "Número de clusters",
+    2, 10, 
+    value=st.session_state.get("k", 3),
+    key="k"
+)
 
 mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True, key="mostrar_radar")
 mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar_dendros")
@@ -112,6 +129,7 @@ tabs = st.tabs([
     "🔥 Correlaciones",
     "📝 Scouting Report"
 ])
+
 # TAB 1: Clusters
 with tabs[0]:
     st.subheader("Jugadores por Cluster")
@@ -133,34 +151,29 @@ with tabs[0]:
     fig.update_layout(legend_title_text='Cluster')
     st.plotly_chart(fig, use_container_width=True)
 
-import plotly.figure_factory as ff
-
+# TAB 2: Dendrogramas
 with tabs[1]:
     if mostrar_dendros:
-        if len(df_clustered) > 2:
-            # Selección de cluster para filtrar dendrograma (opcional)
-            cluster_opciones = ['Todos'] + sorted(df_clustered['Cluster'].unique().tolist())
-            cluster_seleccionado = st.selectbox("Filtrar dendrograma por cluster", cluster_opciones, key="filtro_dendro")
+        clusters_unicos = sorted(df_clustered['Cluster'].unique())
+        cluster_sel = st.selectbox(
+            "Filtrar dendrograma por cluster",
+            options=[-1] + clusters_unicos,
+            format_func=lambda x: "Todos" if x == -1 else f"Cluster {x}",
+            key="cluster_dendro"
+        )
 
-            if cluster_seleccionado == 'Todos':
-                df_dendro = df_clustered
-            else:
-                df_dendro = df_clustered[df_clustered['Cluster'] == cluster_seleccionado]
-
-            if len(df_dendro) > 2:
-                fig = ff.create_dendrogram(
-                    df_dendro[vars_seleccionadas],
-                    labels=df_dendro['Player'].values,
-                    linkagefun='ward',
-                    orientation='left'
-                )
-                fig.update_layout(width=800, height=600, title='Dendrograma interactivo')
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No hay suficientes jugadores para generar dendrograma en este filtro.")
+        if cluster_sel == -1:
+            df_dendro = df_clustered
         else:
-            st.info("Pocos datos para dendrograma.")
+            df_dendro = df_clustered[df_clustered['Cluster'] == cluster_sel]
 
+        if len(df_dendro) > 2:
+            linkage_matrix = linkage(df_dendro[vars_seleccionadas], method='ward')
+            fig = ff.create_dendrogram(df_dendro[vars_seleccionadas], labels=df_dendro['Player'].values, linkagefun=lambda x: linkage_matrix)
+            fig.update_layout(width=1000, height=600)
+            st.plotly_chart(fig)
+        else:
+            st.info("Pocos datos para dendrograma en este cluster.")
 
 # TAB 3: Radar
 with tabs[2]:
