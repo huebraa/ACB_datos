@@ -220,7 +220,46 @@ if mostrar_corr:
     sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
     tabs[5].pyplot(fig)
 
-# TAB 7: Scouting Report (ejemplo)
-tabs[6].subheader("Scouting Report - Ejemplo")
-tabs[6].write("Aquí podrías generar análisis más detallados o reportes personalizados.")
+
+# TAB 7: Scouting Report
+def generar_texto_scouting(fortalezas, debilidades, percentiles):
+    texto = ""
+    if fortalezas:
+        fortalezas_text = [f"{v} (percentil {int(percentiles[v])})" for v in fortalezas]
+        texto += "🟢 **Fortalezas:** Destaca en " + ", ".join(fortalezas_text) + ".\n\n"
+    if debilidades:
+        debilidades_text = [f"{v} (percentil {int(percentiles[v])})" for v in debilidades]
+        texto += "🔴 **Debilidades:** Puede mejorar en " + ", ".join(debilidades_text) + ".\n\n"
+    if not fortalezas and not debilidades:
+        texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
+    return texto
+
+jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
+fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
+percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
+
+fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+
+valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[variables]).T
+valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
+valores_radar = valores_dict[jugadora].tolist()
+valores_radar += valores_radar[:1]
+
+labels = variables
+angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+angles += angles[:1]
+
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
+ax.fill(angles, valores_radar, alpha=0.25)
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(labels)
+ax.set_title(f"Radar de {jugadora}")
+
+tabs[6].pyplot(fig)
+tabs[6].markdown("_Valores normalizados (0-100) para comparación entre variables._")
+
+texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
+tabs[6].markdown(texto)
 
