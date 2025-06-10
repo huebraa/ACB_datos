@@ -33,6 +33,8 @@ def cargar_datos(path="estadisticas_acb_2025.csv"):
 
 df = cargar_datos()
 
+
+
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
@@ -83,6 +85,36 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
     return df_filt
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
+
+def describir_cluster(row, df_total, vars_seleccionadas, umbral_alto=60, umbral_bajo=40):
+    from scipy.stats import percentileofscore
+
+    etiquetas = []
+    percentiles = {}
+
+    for var in vars_seleccionadas:
+        if pd.isna(row[var]) or var not in df_total.columns:
+            percentiles[var] = 50  # Neutral
+        else:
+            percentiles[var] = percentileofscore(df_total[var].dropna(), row[var])
+
+    if percentiles.get('AST', 0) >= umbral_alto and percentiles.get('AST/TO', 0) >= umbral_alto:
+        etiquetas.append("Playmaker")
+    if percentiles.get('3P%', 0) >= umbral_alto and percentiles.get('eFG%', 0) >= umbral_alto:
+        etiquetas.append("Tirador")
+    if percentiles.get('BLK', 0) >= umbral_alto and percentiles.get('DRB%', 0) >= umbral_alto:
+        etiquetas.append("Interior defensor")
+    if percentiles.get('STL', 0) >= umbral_alto and percentiles.get('3P%', 0) >= umbral_alto:
+        etiquetas.append("3&D")
+    if percentiles.get('FG%', 0) >= umbral_alto and percentiles.get('USG%', 0) >= umbral_alto:
+        etiquetas.append("Slasher")
+    if percentiles.get('TRB%', 0) >= umbral_alto and percentiles.get('USG%', 100) <= umbral_bajo:
+        etiquetas.append("Reboteador puro")
+
+    if not etiquetas:
+        return "Perfil mixto"
+    return ", ".join(etiquetas)
+
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
@@ -161,6 +193,9 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
+    resumen['Etiqueta'] = resumen.apply(describir_cluster, axis=1, df_total=df_clustered, vars_seleccionadas=vars_seleccionadas, umbral_alto=60, umbral_bajo=40)
+    df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
+
     st.dataframe(resumen)
 
     fig = px.scatter(
