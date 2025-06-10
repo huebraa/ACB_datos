@@ -1,3 +1,4 @@
+
 # streamlit_app.py
 import streamlit as st
 import pandas as pd
@@ -13,56 +14,40 @@ import seaborn as sns
 from scipy.stats import percentileofscore
 
 # --- CONFIGURACION INICIAL ---
-st.set_page_config(layout="wide", page_title="Perfiles Jugador")
+st.set_page_config(layout="wide", page_title="Perfiles Jugadores - Segunda FEB")
 
-@st.cache_data(show_spinner=False)
-def cargar_y_preparar_datos(path):
-    df = pd.read_csv(path)
-    # Limpieza especial
-    for col in ['Ast/TO', 'Stl/TO']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-            df[col].replace([np.inf, -np.inf], np.nan, inplace=True)
+# --- CARGA DE DATOS ---
+df = pd.read_csv("estadisticas_acb_2025.csv")
 
-    columnas_porcentaje = ['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'ORB%', 'DRB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
-    
-    for col in columnas_porcentaje:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')  # Solo convertir a float, no dividir
+# LIMPIEZA DE DATOS
+for col in ['Ast/TO', 'Stl/TO']:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col].replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    # Convertir columnas numéricas a float32 para ahorrar memoria
-    columnas_numericas = df.select_dtypes(include='number').columns
-    for col in columnas_numericas:
-        df[col] = df[col].astype('float32')
+columnas_porcentaje = ['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'ORB%', 'DRB%', 'TRB%', 'AST%', 'TOV%', 'STL%', 'BLK%', 'USG%']
 
-    return df
+for col in columnas_porcentaje:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')  # Solo convertir a float, no dividir
 
-@st.cache_data(show_spinner=False)
-def preparar_datos_cluster(df, variables):
-    df_cluster = df[variables].copy()
-    for col in variables:
-        df_cluster[col] = pd.to_numeric(df_cluster[col], errors='coerce')
-    df_cluster = df_cluster.dropna()
-    return df_cluster
 
-@st.cache_data(show_spinner=False)
-def clustering_pca(X, n_clusters):
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-    clusters = kmeans.fit_predict(X_scaled)
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X_scaled)
-    return clusters, X_pca
+# FILTROS EN SIDEBAR
+st.sidebar.title("Configuración")
 
-df = cargar_y_preparar_datos("estadisticas_acb_2025.csv")
+posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()))
+equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()))
 
-# Excluir columnas no numéricas ni relevantes para clustering
-columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_x', 'Team_y', 'Team_completo', 'Pos']
+if posiciones:
+    df = df[df['Pos'].isin(posiciones)]
+if equipos:
+    df = df[df['Team_completo'].isin(equipos)]
+
+# VARIABLES NUMÉRICAS PARA CLUSTERING
+columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df.select_dtypes(include='number').columns
 columnas_utiles = [col for col in columnas_numericas if col not in columnas_excluir]
 
-st.sidebar.title("Configuración")
 variables = st.sidebar.multiselect("Variables para clustering:", columnas_utiles, default=columnas_utiles[:4])
 k = st.sidebar.slider("Número de clusters", 2, 10, 3)
 
@@ -71,24 +56,34 @@ mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True)
 mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True)
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True)
 
+# PROCESAMIENTO
 if len(variables) < 2:
     st.error("Selecciona al menos 2 variables para continuar.")
     st.stop()
 
-X = preparar_datos_cluster(df, variables)
+for col in variables:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+X = df[variables].replace([np.inf, -np.inf], np.nan).dropna()
 if X.empty:
     st.error("No hay datos válidos para clustering.")
     st.stop()
 
-clusters, X_pca = clustering_pca(X, k)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-# Construir dataframe con solo columnas necesarias para reducir memoria
-df_clustered = df.loc[X.index, ['Player', 'Team_completo', 'Pos'] + variables].copy()
+kmeans = KMeans(n_clusters=k, random_state=42, n_init='auto')
+clusters = kmeans.fit_predict(X_scaled)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+df_clustered = df.loc[X.index].copy()
 df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-# --- VISUALIZACIONES EN TABS ---
+# VISUALIZACIONES
 tabs = st.tabs([
     "📊 Clusters",
     "🌳 Dendrogramas",
@@ -99,9 +94,12 @@ tabs = st.tabs([
     "📝 Scouting Report"
 ])
 
-# --- TAB 1: Clusters ---
+# TAB 1: Clusters
 tabs[0].subheader("Jugadores por Cluster")
-tabs[0].dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + variables + ['Cluster']])
+tabs[0].dataframe(
+    df_clustered[['Player', 'Team_completo', 'Pos'] + variables])
+
+
 
 fig = px.scatter(
     df_clustered,
@@ -116,7 +114,7 @@ fig.update_traces(marker=dict(size=10, line=dict(width=1, color='DarkSlateGrey')
 fig.update_layout(legend_title_text='Cluster')
 tabs[0].plotly_chart(fig, use_container_width=True)
 
-# --- TAB 2: Dendrogramas ---
+# TAB 2: Dendrogramas
 if mostrar_dendros:
     df_filt = df_clustered.copy()
     if len(df_filt) > 2:
@@ -127,7 +125,7 @@ if mostrar_dendros:
         dendrogram(linkage_matrix, labels=labels_all, leaf_rotation=90, leaf_font_size=10)
         tabs[1].pyplot(fig)
 
-# --- TAB 3: Radar Charts ---
+# TAB 3: Radar Charts
 if mostrar_radar:
     tabs[2].subheader("Radar Charts por Cluster")
     colores = plt.cm.viridis(np.linspace(0, 1, k))
@@ -143,14 +141,13 @@ if mostrar_radar:
             scaler_radar.fit_transform(means.values.reshape(-1, 1)).flatten(),
             index=means.index
         )
+
         if len(normalized) < 2:
             continue
 
         labels_radar = normalized.index.tolist()
         values = normalized.values.tolist()
         angles = np.linspace(0, 2 * np.pi, len(values), endpoint=False).tolist()
-
-        # Cerrar el círculo
         values += values[:1]
         angles += angles[:1]
 
@@ -164,8 +161,8 @@ if mostrar_radar:
         ax.set_yticklabels([])
         tabs[2].pyplot(fig)
 
-# --- TAB 4: Jugadores diferentes ---
-tabs[3].subheader("Jugadores más alejados del centroide")
+# TAB 4: Jugadores más alejadas del centroide
+tabs[3].subheader("Jugadores más alejadas del centroide")
 for cluster_id in sorted(df_clustered['Cluster'].unique()):
     subset = df_clustered[df_clustered['Cluster'] == cluster_id]
     if len(subset) <= 2:
@@ -179,9 +176,9 @@ for cluster_id in sorted(df_clustered['Cluster'].unique()):
     tabs[3].write(f"**Cluster {cluster_id}**")
     tabs[3].dataframe(top5[['Player', 'DistanciaCentroide']])
 
-# --- TAB 5: Jugadores similares ---
+# TAB 5: Jugadores similares
 if mostrar_similares:
-    jugador = tabs[4].selectbox("Selecciona un jugador", df_clustered['Player'].unique())
+    jugador = tabs[4].selectbox("Selecciona una jugadora", df_clustered['Player'].unique())
     if tabs[4].button("Buscar similares"):
         X_sim = StandardScaler().fit_transform(df_clustered[variables])
         df_sim = pd.DataFrame(X_sim, index=df_clustered['Player'], columns=variables)
@@ -190,30 +187,26 @@ if mostrar_similares:
         similares = df_sim.sort_values(by='Distancia').iloc[1:6]
         tabs[4].dataframe(similares[['Distancia']])
 
-# --- TAB 6: Correlaciones ---
+# TAB 6: Correlaciones
 if mostrar_corr:
     corr_matrix = df_clustered[variables].corr()
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
     tabs[5].pyplot(fig)
 
+# TAB 7: Scouting Report
 def generar_texto_scouting(fortalezas, debilidades, percentiles):
     texto = ""
     if fortalezas:
-        fortalezas_text = []
-        for v in fortalezas:
-            fortalezas_text.append(f"{v} (percentil {int(percentiles[v])})")
+        fortalezas_text = [f"{v} (percentil {int(percentiles[v])})" for v in fortalezas]
         texto += "🟢 **Fortalezas:** Destaca en " + ", ".join(fortalezas_text) + ".\n\n"
     if debilidades:
-        debilidades_text = []
-        for v in debilidades:
-            debilidades_text.append(f"{v} (percentil {int(percentiles[v])})")
+        debilidades_text = [f"{v} (percentil {int(percentiles[v])})" for v in debilidades]
         texto += "🔴 **Debilidades:** Puede mejorar en " + ", ".join(debilidades_text) + ".\n\n"
     if not fortalezas and not debilidades:
         texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
     return texto
 
-# --- TAB 7: Scouting Report ---
 jugadora = tabs[6].selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
 fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
 percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in variables}
