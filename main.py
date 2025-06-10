@@ -121,12 +121,29 @@ columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
+# Lista prediseñada recomendada de variables para clustering
+vars_predeterminadas = ['3PA', '3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'BLK%', 'STL%', 'USG%', 'Ast/TO', 'Stl/TO', 'FT/FGA']
+
+# Solo incluye las que existan en el dataframe y variables válidas
+vars_predeterminadas = [v for v in vars_predeterminadas if v in variables]
+
+# Lista prediseñada recomendada de variables para clustering
+vars_predeterminadas = ['3PA', '3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'BLK%', 'STL%', 'USG%', 'Ast/TO', 'Stl/TO', 'FT/FGA']
+
+# Filtrar solo las variables que existen en el dataframe
+vars_predeterminadas = [v for v in vars_predeterminadas if v in variables]
+
+st.sidebar.markdown("### Variables recomendadas para clustering:")
+st.sidebar.markdown(", ".join(vars_predeterminadas))
+
 vars_seleccionadas = st.sidebar.multiselect(
     "Variables para clustering",
     variables,
-    default=st.session_state.get("vars_seleccionadas", variables[:5]),
+    default=st.session_state.get("vars_seleccionadas", vars_predeterminadas),
     key="vars_seleccionadas"
 )
+
+
 
 k = st.sidebar.slider(
     "Número de clusters",
