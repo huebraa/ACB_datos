@@ -14,7 +14,7 @@ import seaborn as sns
 from scipy.stats import percentileofscore
 
 # --- CONFIGURACION INICIAL ---
-st.set_page_config(layout="wide", page_title="Perfiles Jugadores - Segunda FEB")
+st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
 # --- CARGA DE DATOS ---
 df = pd.read_csv("estadisticas_acb_2025.csv")
