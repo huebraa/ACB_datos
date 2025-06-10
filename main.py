@@ -6,8 +6,9 @@ from matplotlib.colors import to_hex
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import linkage
 import plotly.express as px
+import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
 
@@ -35,32 +36,48 @@ df = cargar_datos()
 # --- FILTROS ---
 st.sidebar.title("Configuración")
 
-posiciones = st.sidebar.multiselect("Filtrar por posición", sorted(df['Pos'].dropna().unique()), key="posiciones")
-equipos = st.sidebar.multiselect("Filtrar por equipo", sorted(df['Team_completo'].dropna().unique()), key="equipos")
+posiciones = st.sidebar.multiselect(
+    "Filtrar por posición",
+    sorted(df['Pos'].dropna().unique()),
+    key="posiciones",
+    default=st.session_state.get("posiciones", [])
+)
 
-min_min = int(df['MIN'].min())
-max_min = int(df['MIN'].max())
-minutos_seleccionados = st.sidebar.slider("Filtrar por minutos jugados (MIN)", min_min, max_min, (min_min, max_min), key="minutos")
+equipos = st.sidebar.multiselect(
+    "Filtrar por equipo",
+    sorted(df['Team_completo'].dropna().unique()),
+    key="equipos",
+    default=st.session_state.get("equipos", [])
+)
 
-def aplicar_filtros(df, posiciones, equipos, minutos):
+def aplicar_filtros(df, posiciones, equipos):
     df_filt = df.copy()
     if posiciones:
         df_filt = df_filt[df_filt['Pos'].isin(posiciones)]
     if equipos:
         df_filt = df_filt[df_filt['Team_completo'].isin(equipos)]
-    if minutos:
-        df_filt = df_filt[(df_filt['MIN'] >= minutos[0]) & (df_filt['MIN'] <= minutos[1])]
     return df_filt
 
-df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
+df_filtrado = aplicar_filtros(df, posiciones, equipos)
 
 # --- VARIABLES Y PARÁMETROS ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
-vars_seleccionadas = st.sidebar.multiselect("Variables para clustering", variables, default=variables[:5], key="vars_seleccionadas")
-k = st.sidebar.slider("Número de clusters", 2, 10, 3, key="num_clusters")
+vars_seleccionadas = st.sidebar.multiselect(
+    "Variables para clustering",
+    variables,
+    default=st.session_state.get("vars_seleccionadas", variables[:5]),
+    key="vars_seleccionadas"
+)
+
+k = st.sidebar.slider(
+    "Número de clusters",
+    2, 10, 
+    value=st.session_state.get("k", 3),
+    key="k"
+)
 
 mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True, key="mostrar_radar")
 mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar_dendros")
@@ -112,10 +129,15 @@ tabs = st.tabs([
     "🔥 Correlaciones",
     "📝 Scouting Report"
 ])
+
 # TAB 1: Clusters
 with tabs[0]:
     st.subheader("Jugadores por Cluster")
     st.dataframe(df_clustered[['Player', 'Team_completo', 'Pos'] + vars_seleccionadas])
+
+    st.subheader("Perfil promedio por Cluster")
+    resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
+    st.dataframe(resumen)
 
     fig = px.scatter(
         df_clustered,
@@ -132,13 +154,26 @@ with tabs[0]:
 # TAB 2: Dendrogramas
 with tabs[1]:
     if mostrar_dendros:
-        if len(df_clustered) > 2:
-            linkage_matrix = linkage(df_clustered[vars_seleccionadas], method='ward')
-            fig, ax = plt.subplots(figsize=(20, 7))
-            dendrogram(linkage_matrix, labels=df_clustered['Player'].values, leaf_rotation=90, leaf_font_size=10)
-            st.pyplot(fig)
+        clusters_unicos = sorted(df_clustered['Cluster'].unique())
+        cluster_sel = st.selectbox(
+            "Filtrar dendrograma por cluster",
+            options=[-1] + clusters_unicos,
+            format_func=lambda x: "Todos" if x == -1 else f"Cluster {x}",
+            key="cluster_dendro"
+        )
+
+        if cluster_sel == -1:
+            df_dendro = df_clustered
         else:
-            st.info("Pocos datos para dendrograma.")
+            df_dendro = df_clustered[df_clustered['Cluster'] == cluster_sel]
+
+        if len(df_dendro) > 2:
+            linkage_matrix = linkage(df_dendro[vars_seleccionadas], method='ward')
+            fig = ff.create_dendrogram(df_dendro[vars_seleccionadas], labels=df_dendro['Player'].values, linkagefun=lambda x: linkage_matrix)
+            fig.update_layout(width=1000, height=600)
+            st.plotly_chart(fig)
+        else:
+            st.info("Pocos datos para dendrograma en este cluster.")
 
 # TAB 3: Radar
 with tabs[2]:
@@ -182,25 +217,32 @@ with tabs[3]:
         cluster_data['DistanciaCentroide'] = distances
         top5 = cluster_data.sort_values(by='DistanciaCentroide', ascending=False).head(5)
         st.write(f"**Cluster {cluster_id}**")
-        st.dataframe(top5[['Player', 'DistanciaCentroide']])
+        st.dataframe(top5[['Player', 'Team_completo', 'Pos', 'DistanciaCentroide'] + vars_seleccionadas])
 
-# TAB 5: Jugadores Similares
+# TAB 5: Jugadores similares
 with tabs[4]:
     if mostrar_similares:
-        jugador = st.selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="similares")
-        if st.button("Buscar jugadores similares"):
-            df_sim = pd.DataFrame(X_scaled, index=df_clustered['Player'], columns=vars_seleccionadas)
-            jugador_vector = df_sim.loc[jugador].values
-            df_sim['Distancia'] = df_sim.apply(lambda row: np.linalg.norm(row.values[:-1] - jugador_vector), axis=1)
-            similares = df_sim.sort_values('Distancia').iloc[1:6]
-            st.dataframe(similares[['Distancia']])
+        st.subheader("Buscar Jugadores Similares")
+
+        jugador_sel = st.selectbox("Selecciona un jugador:", df_clustered['Player'].sort_values().unique(), key="jugador_similar")
+        if jugador_sel:
+            jugador_info = df_clustered[df_clustered['Player'] == jugador_sel].iloc[0]
+            centroid = kmeans.cluster_centers_[jugador_info['Cluster']]
+            distancias = np.linalg.norm(X_scaled - centroid, axis=1)
+            similars_idx = np.argsort(distancias)[:6]
+            similars = df_clustered.iloc[similars_idx]
+            similars = similars[similars['Player'] != jugador_sel]
+
+            st.write(f"Jugadores similares a **{jugador_sel}** (Cluster {jugador_info['Cluster']}):")
+            st.dataframe(similars[['Player', 'Team_completo', 'Pos'] + vars_seleccionadas])
 
 # TAB 6: Correlaciones
 with tabs[5]:
     if mostrar_corr:
+        st.subheader("Mapa de calor de correlaciones")
         corr = df_clustered[vars_seleccionadas].corr()
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
         st.pyplot(fig)
 
 # TAB 7: Scouting Report
