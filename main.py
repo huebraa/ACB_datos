@@ -86,16 +86,35 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
-from sklearn.tree import DecisionTreeClassifier
+def describir_cluster(row, df_total, vars_seleccionadas, umbral_alto=60, umbral_bajo=40):
+    from scipy.stats import percentileofscore
 
-def describir_cluster_pred(df_total, vars_seleccionadas):
-    clf = DecisionTreeClassifier(max_depth=3, random_state=42)
-    clf.fit(df_total[vars_seleccionadas], df_total['Cluster'])
-    etiquetas = clf.predict(df_total[vars_seleccionadas])
-    return etiquetas
+    etiquetas = []
+    percentiles = {}
 
-# Uso
-resumen['Etiqueta'] = describir_cluster_pred(df_clustered, vars_seleccionadas)
+    for var in vars_seleccionadas:
+        if pd.isna(row[var]) or var not in df_total.columns:
+            percentiles[var] = 50  # Neutral
+        else:
+            percentiles[var] = percentileofscore(df_total[var].dropna(), row[var])
+
+    if percentiles.get('AST', 0) >= umbral_alto and percentiles.get('AST/TO', 0) >= umbral_alto:
+        etiquetas.append("Playmaker")
+    if percentiles.get('3P%', 0) >= umbral_alto and percentiles.get('eFG%', 0) >= umbral_alto:
+        etiquetas.append("Tirador")
+    if percentiles.get('BLK', 0) >= umbral_alto and percentiles.get('DRB%', 0) >= umbral_alto:
+        etiquetas.append("Interior defensor")
+    if percentiles.get('STL', 0) >= umbral_alto and percentiles.get('3P%', 0) >= umbral_alto:
+        etiquetas.append("3&D")
+    if percentiles.get('FG%', 0) >= umbral_alto and percentiles.get('USG%', 0) >= umbral_alto:
+        etiquetas.append("Slasher")
+    if percentiles.get('TRB%', 0) >= umbral_alto and percentiles.get('USG%', 100) <= umbral_bajo:
+        etiquetas.append("Reboteador puro")
+
+    if not etiquetas:
+        return "Perfil mixto"
+    return ", ".join(etiquetas)
+
 
 
 # --- VARIABLES Y PARÁMETROS ---
