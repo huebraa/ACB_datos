@@ -86,34 +86,42 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
-def describir_cluster(row, df_total, vars_seleccionadas, umbral_alto=60, umbral_bajo=40):
-    from scipy.stats import percentileofscore
+def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
+    """
+    Describe el cluster basándose en z-scores de las variables seleccionadas.
+    Asigna etiquetas si la media del cluster está > umbral desviaciones estándar 
+    por encima o debajo del promedio global.
+    """
+    cluster_data = df_total[df_total['Cluster'] == cluster_id]
+    if cluster_data.empty:
+        return "Cluster vacío"
+
+    global_mean = df_total[vars_seleccionadas].mean()
+    global_std = df_total[vars_seleccionadas].std()
+    centroid = cluster_data[vars_seleccionadas].mean()
+
+    z_scores = (centroid - global_mean) / global_std
 
     etiquetas = []
-    percentiles = {}
 
-    for var in vars_seleccionadas:
-        if pd.isna(row[var]) or var not in df_total.columns:
-            percentiles[var] = 50  # Neutral
-        else:
-            percentiles[var] = percentileofscore(df_total[var].dropna(), row[var])
-
-    if percentiles.get('AST', 0) >= umbral_alto and percentiles.get('AST/TO', 0) >= umbral_alto:
+    if z_scores.get('AST%', 0) > umbral:
         etiquetas.append("Playmaker")
-    if percentiles.get('3P%', 0) >= umbral_alto and percentiles.get('eFG%', 0) >= umbral_alto:
+    if z_scores.get('3P%', 0) > umbral:
         etiquetas.append("Tirador")
-    if percentiles.get('BLK', 0) >= umbral_alto and percentiles.get('DRB%', 0) >= umbral_alto:
+    if z_scores.get('BLK%', 0) > umbral:
         etiquetas.append("Interior defensor")
-    if percentiles.get('STL', 0) >= umbral_alto and percentiles.get('3P%', 0) >= umbral_alto:
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
         etiquetas.append("3&D")
-    if percentiles.get('FG%', 0) >= umbral_alto and percentiles.get('USG%', 0) >= umbral_alto:
+    if z_scores.get('FG%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
         etiquetas.append("Slasher")
-    if percentiles.get('TRB%', 0) >= umbral_alto and percentiles.get('USG%', 100) <= umbral_bajo:
+    if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
         etiquetas.append("Reboteador puro")
 
     if not etiquetas:
         return "Perfil mixto"
+
     return ", ".join(etiquetas)
+
 
 
 
@@ -211,8 +219,9 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
-    resumen['Etiqueta'] = resumen.apply(describir_cluster, axis=1, df_total=df_clustered, vars_seleccionadas=vars_seleccionadas, umbral_alto=60, umbral_bajo=40)
+    resumen['Etiqueta'] = [describir_cluster_mejorado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
+
 
     st.dataframe(resumen)
 
