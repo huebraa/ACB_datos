@@ -308,8 +308,11 @@ with tabs[4]:
         if jugador_data.empty:
             st.warning("Jugador no encontrado.")
         else:
-            jugador_vals = jugador_data.values[0]
-            df_clustered['DistSim'] = np.linalg.norm(df_clustered[vars_seleccionadas] - jugador_vals, axis=1)
+            jugador_vals = jugador_data.values[0].reshape(1, -1)
+            jugador_vals_scaled = scaler.transform(jugador_vals)
+            variables_scaled = scaler.transform(df_clustered[vars_seleccionadas])
+        
+            df_clustered['DistSim'] = np.linalg.norm(variables_scaled - jugador_vals_scaled, axis=1)
             similares = df_clustered[df_clustered['Player'] != jugador].sort_values('DistSim').head(10)
             st.dataframe(similares[['Player', 'Pos', 'Team_completo', 'Cluster', 'DistSim'] + vars_seleccionadas])
 
