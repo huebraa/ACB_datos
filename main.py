@@ -86,13 +86,16 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
-from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.tree import DecisionTreeClassifier
 
-def describir_cluster(df_total, vars_seleccionadas):
+def describir_cluster_pred(df_total, vars_seleccionadas):
     clf = DecisionTreeClassifier(max_depth=3, random_state=42)
     clf.fit(df_total[vars_seleccionadas], df_total['Cluster'])
-    reglas = export_text(clf, feature_names=vars_seleccionadas)
-    return reglas
+    etiquetas = clf.predict(df_total[vars_seleccionadas])
+    return etiquetas
+
+# Uso
+resumen['Etiqueta'] = describir_cluster_pred(df_clustered, vars_seleccionadas)
 
 
 # --- VARIABLES Y PARÁMETROS ---
