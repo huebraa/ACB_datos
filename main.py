@@ -42,7 +42,8 @@ def cargar_datos(path="estadisticas_acb_2025.csv"):
 
     return df
 
-df = cargar_datos()
+df = cargar_datos(ruta_csv)
+
 
 
 
