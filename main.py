@@ -369,31 +369,40 @@ with tabs[6]:
             texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
         return texto
 
-    jugadora = st.selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
-    fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-    posicion = fila['Pos']  # Asegúrate de que 'Pos' sea el nombre correcto de la columna de posición
+    st.subheader("🔍 Scouting individual y comparativo")
 
-    # Filtrar por posición
+    col1, col2 = st.columns(2)
+    with col1:
+        jugadora_1 = st.selectbox("Selecciona una jugadora principal", df_clustered['Player'].unique(), key="scouting_1")
+    with col2:
+        jugadora_2 = st.selectbox("Comparar con otra jugadora (opcional)", ["Promedio de su posición"] + list(df_clustered['Player'].unique()), key="scouting_2")
+
+    fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
+    posicion = fila_1['Pos']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    # Normalizar valores dentro de la posición
     scaler = MinMaxScaler((0, 100))
-    normalizados_pos = scaler.fit_transform(df_posicion[vars_seleccionadas])
-    df_norm_pos = pd.DataFrame(normalizados_pos, columns=vars_seleccionadas)
-    df_norm_pos['Player'] = df_posicion['Player'].values
+    normalizados = scaler.fit_transform(df_clustered[vars_seleccionadas])
+    df_norm = pd.DataFrame(normalizados, columns=vars_seleccionadas)
+    df_norm['Player'] = df_clustered['Player'].values
 
-    # Datos jugadora y promedio posición
-    valores_jugadora = df_norm_pos[df_norm_pos['Player'] == jugadora][vars_seleccionadas].values.flatten().tolist()
-    valores_promedio = df_norm_pos[vars_seleccionadas].mean().tolist()
+    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_seleccionadas].values.flatten().tolist()
 
-    valores_jugadora += valores_jugadora[:1]
-    valores_promedio += valores_promedio[:1]
+    if jugadora_2 == "Promedio de su posición":
+        df_pos = df_clustered[df_clustered['Pos'] == posicion]
+        valores_2 = scaler.transform(df_pos[vars_seleccionadas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio {posicion}"
+        color_2 = "#999999"
+        linestyle_2 = "dashed"
+    else:
+        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
+        nombre_2 = jugadora_2
+        color_2 = "#cc5c5c"
+        linestyle_2 = "solid"
 
-    percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila[var]) for var in vars_seleccionadas}
-    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
-    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+    valores_1 += valores_1[:1]
+    valores_2 += valores_2[:1]
 
-    # Radar
     labels = vars_seleccionadas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
@@ -401,22 +410,27 @@ with tabs[6]:
     fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("white")
 
-    ax.plot(angles, valores_jugadora, linewidth=2.5, color="#006699", label=jugadora)
-    ax.fill(angles, valores_jugadora, color="#006699", alpha=0.25)
+    ax.plot(angles, valores_1, linewidth=2.5, color="#006699", label=jugadora_1)
+    ax.fill(angles, valores_1, color="#006699", alpha=0.25)
 
-    ax.plot(angles, valores_promedio, linewidth=2.5, color="#999999", linestyle="dashed", label=f"Promedio {posicion}")
-    ax.fill(angles, valores_promedio, color="#999999", alpha=0.15)
+    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2)
+    ax.fill(angles, valores_2, color=color_2, alpha=0.15)
 
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
     ax.set_yticklabels([])
     ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
-    ax.set_title(f"Radar de {jugadora} vs promedio en posición {posicion}", fontsize=14, fontweight='bold', color="#222222", pad=15)
+    ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=14, fontweight='bold', color="#222222", pad=15)
     ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
 
     st.pyplot(fig)
-    st.markdown("_Valores normalizados dentro de su posición (0-100)._")
+    st.markdown("_Valores normalizados (0-100)._")
 
-    texto = f"**Informe de {jugadora} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
+    percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
+    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+
+    texto = f"**Informe de {jugadora_1} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
     st.markdown(texto)
+
 
