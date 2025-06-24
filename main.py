@@ -27,7 +27,7 @@ ruta_csv = ligas[liga_seleccionada]
 
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
-df = cargar_datos(ruta_csv):
+df = cargar_datos(ruta_csv)
     df = pd.read_csv(path)
     # Limpieza básica
     for col in ['Ast/TO', 'Stl/TO']:
