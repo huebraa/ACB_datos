@@ -376,39 +376,43 @@ with tabs[6]:
     fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
     debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-    # Normalizar datos
-    valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[vars_seleccionadas]).T
-    valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-    valores_radar = valores_dict[jugadora].tolist()
-    valores_radar += valores_radar[:1]
+    # Normalizar valores para todo el dataset
+    scaler = MinMaxScaler((0, 100))
+    normalizados = scaler.fit_transform(df_clustered[vars_seleccionadas])
+    df_normalizado = pd.DataFrame(normalizados, columns=vars_seleccionadas)
+    df_normalizado['Player'] = df_clustered['Player']
+
+    valores_jugadora = df_normalizado[df_normalizado['Player'] == jugadora][vars_seleccionadas].values.flatten().tolist()
+    valores_promedio = df_normalizado[vars_seleccionadas].mean().tolist()
+
+    # Cierre del radar
+    valores_jugadora += valores_jugadora[:1]
+    valores_promedio += valores_promedio[:1]
 
     labels = vars_seleccionadas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    # Radar moderno y compacto
+    # Radar
     fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("white")
 
-    # Estilo de la línea
-    ax.plot(angles, valores_radar, linewidth=2.5, color="#006699", label=jugadora)
-    ax.fill(angles, valores_radar, color="#006699", alpha=0.2)
+    ax.plot(angles, valores_jugadora, linewidth=2.5, color="#006699", label=jugadora)
+    ax.fill(angles, valores_jugadora, color="#006699", alpha=0.25)
 
-    # Etiquetas y estética
+    ax.plot(angles, valores_promedio, linewidth=2.5, color="#999999", linestyle="dashed", label="Promedio")
+    ax.fill(angles, valores_promedio, color="#999999", alpha=0.15)
+
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
-    ax.set_yticklabels([])  # Opcional: ocultar anillos
-    ax.grid(color="#CCCCCC", linewidth=0.8, linestyle="dotted")
-
-    # Título y leyenda
-    ax.set_title(f"🧬 Comparativa de rendimiento", fontsize=14, fontweight='bold', color="#222222", pad=15)
+    ax.set_yticklabels([])
+    ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
+    ax.set_title(f"🧬 Radar de {jugadora} vs promedio", fontsize=14, fontweight='bold', color="#222222", pad=15)
     ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
 
     st.pyplot(fig)
-    st.markdown("_Valores normalizados (0-100) para comparación entre variables._")
+    st.markdown("_Valores normalizados (0-100)._")
 
-    # Informe scouting
     texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
     st.markdown(texto)
-
 
