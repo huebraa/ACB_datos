@@ -22,8 +22,33 @@ ligas = {
     "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
 }
 
-liga_seleccionada = st.sidebar.selectbox("Selecciona la liga", list(ligas.keys()))
-ruta_csv = ligas[liga_seleccionada]
+# Selección de hasta 3 ligas
+ligas_seleccionadas = st.sidebar.multiselect(
+    "Selecciona hasta 3 ligas",
+    options=list(ligas.keys()),
+    default=[],
+    help="Puedes seleccionar hasta 3 ligas",
+    key="ligas"
+)
+
+# Controlar máximo 3 ligas seleccionadas
+if len(ligas_seleccionadas) > 3:
+    st.sidebar.error("Por favor selecciona un máximo de 3 ligas.")
+    # Para que no siga con más de 3 seleccionadas, puedes resetear o cortar la lista:
+    ligas_seleccionadas = ligas_seleccionadas[:3]
+
+# Cargar datos de las ligas seleccionadas y concatenar
+if ligas_seleccionadas:
+    dfs = []
+    for liga in ligas_seleccionadas:
+        ruta = ligas[liga]
+        df_temp = pd.read_csv(ruta)
+        df_temp["Liga"] = liga  # Agregar columna para identificar liga
+        dfs.append(df_temp)
+    df = pd.concat(dfs, ignore_index=True)
+else:
+    st.warning("Selecciona al menos una liga para mostrar datos.")
+    st.stop()
 
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
