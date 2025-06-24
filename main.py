@@ -22,32 +22,9 @@ ligas = {
     "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
 }
 
-# MULTISELECT para seleccionar hasta 3 ligas
-ligas_seleccionadas = st.sidebar.multiselect(
-    "Selecciona hasta 3 ligas",
-    options=list(ligas.keys()),
-    default=list(ligas.keys())[:1],  # por defecto la primera liga
-    help="Puedes seleccionar hasta 3 ligas"
-)
 
-if len(ligas_seleccionadas) > 3:
-    st.sidebar.error("Selecciona máximo 3 ligas.")
-    ligas_seleccionadas = ligas_seleccionadas[:3]
-
-if not ligas_seleccionadas:
-    st.warning("Selecciona al menos una liga para mostrar datos.")
-    st.stop()
-
-# Cargar y concatenar datos
-dfs = []
-for liga in ligas_seleccionadas:
-    df_temp = cargar_datos(ligas[liga])
-    df_temp['Liga'] = liga  # Añadimos columna para identificar la liga
-    dfs.append(df_temp)
-
-df = pd.concat(dfs, ignore_index=True)
-
-# Ahora df contiene datos combinados de hasta 3 ligas.
+liga_seleccionada = st.sidebar.selectbox("Selecciona la liga", list(ligas.keys()))
+ruta_csv = ligas[liga_seleccionada]
 
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
