@@ -73,18 +73,16 @@ equipos = st.sidebar.multiselect(
     key="equipos"
 )
 
-margen_min = 5  # margen fijo ±5 minutos
+margen = 5
 
-minutos_seleccionados = st.sidebar.slider(
-    "Filtrar por minutos jugados (MIN)",
-    int(df['MIN'].min()),
-    int(df['MIN'].max()),
-    key="minutos"
-)
+# El slider mantiene el rango exacto seleccionado por el usuario
+minuto_min_selec, minuto_max_selec = st.session_state["minutos"]
 
+# Luego al filtrar, agregás el margen para incluir ±5 minutos extra
 df_filtrado = df[
-    (df['MIN'] >= minutos_seleccionados - margen_min) &
-    (df['MIN'] <= minutos_seleccionados + margen_min)
+    (df["MIN"] >= max(min_min, minuto_min_selec - margen)) &
+    (df["MIN"] <= min(max_min, minuto_max_selec + margen))
+    # + otros filtros acá
 ]
 
 
