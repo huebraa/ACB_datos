@@ -404,7 +404,8 @@ with tabs[6]:
     debilidades = [var for var, pct in percentiles_1.items() if pct <= 25]
 
     # Radar Plot (estilo moderno)
-    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
+
 
     # Colores
     color_1 = "#30A9DE"     # Azul
@@ -425,7 +426,7 @@ with tabs[6]:
 
     # Ejes y etiquetas
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=12, color="#333333", fontweight='bold')
+    ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
     ax.set_yticklabels([])
     ax.tick_params(colors="#888888", labelsize=10)
     ax.yaxis.grid(True, linestyle='dotted', color="#CCCCCC", linewidth=1)
@@ -433,8 +434,8 @@ with tabs[6]:
     ax.set_rlabel_position(0)
 
     # Título y leyenda
-    ax.set_title(f"🧬 Comparativa de rendimiento", fontsize=18, fontweight='bold', color="#222222", pad=20)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.1), fontsize=11)
+    ax.set_title(f"🧬 Comparativa de rendimiento", fontsize=14, fontweight='bold', color="#222222", pad=15)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
 
     st.pyplot(fig)
     st.markdown("_Valores normalizados (0-100) para comparación entre variables._")
