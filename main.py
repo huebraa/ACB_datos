@@ -357,11 +357,6 @@ with tabs[5]:
 
 # TAB 7: Scouting Report
 with tabs[6]:
-    import matplotlib.pyplot as plt
-    from sklearn.preprocessing import MinMaxScaler
-    from scipy.stats import percentileofscore
-    import numpy as np
-
     def generar_texto_scouting(fortalezas, debilidades, percentiles):
         texto = ""
         if fortalezas:
@@ -374,64 +369,36 @@ with tabs[6]:
             texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
         return texto
 
-    # Selección de jugadoras
-    col1, col2 = st.columns(2)
-    with col1:
-        jugadora_1 = st.selectbox("🎯 Jugadora principal", df_clustered['Player'].unique(), key="scouting_player_1")
-    with col2:
-        jugadora_2 = st.selectbox("🆚 Comparar con...", df_clustered['Player'].unique(), key="scouting_player_2")
+    jugadora = st.selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
+    fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
+    percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in vars_seleccionadas}
 
-    # Variables comunes
+    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+
+    # Normalizar datos
+    valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[vars_seleccionadas]).T
+    valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
+    valores_radar = valores_dict[jugadora].tolist()
+    valores_radar += valores_radar[:1]
+
     labels = vars_seleccionadas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    # Normalización para radar
-    valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[vars_seleccionadas]).T
-    valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-
-    def obtener_valores(jugadora):
-        valores = valores_dict[jugadora].tolist()
-        return valores + valores[:1]
-
-    valores_1 = obtener_valores(jugadora_1)
-    valores_2 = obtener_valores(jugadora_2)
-
-    # Percentiles, fortalezas y debilidades de la jugadora 1
-    fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
-    percentiles_1 = {var: percentileofscore(df_clustered[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
-    fortalezas = [var for var, pct in percentiles_1.items() if pct >= 75]
-    debilidades = [var for var, pct in percentiles_1.items() if pct <= 25]
-
-    # Radar Plot (estilo moderno)
+    # Radar moderno y compacto
     fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor("white")
 
+    # Estilo de la línea
+    ax.plot(angles, valores_radar, linewidth=2.5, color="#006699", label=jugadora)
+    ax.fill(angles, valores_radar, color="#006699", alpha=0.2)
 
-    # Colores
-    color_1 = "#30A9DE"     # Azul
-    color_2 = "#EF5B5B"     # Rojo
-    bg_color = "#F8F9FA"
-
-    fig.patch.set_facecolor(bg_color)
-    ax.set_facecolor(bg_color)
-
-    # Jugadora 1
-    ax.plot(angles, valores_1, color=color_1, linewidth=3, label=jugadora_1)
-    ax.fill(angles, valores_1, color=color_1 + "80", alpha=0.5)
-
-    # Jugadora 2
-    if jugadora_2 != jugadora_1:
-        ax.plot(angles, valores_2, color=color_2, linewidth=3, label=jugadora_2)
-        ax.fill(angles, valores_2, color=color_2 + "80", alpha=0.3)
-
-    # Ejes y etiquetas
+    # Etiquetas y estética
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
-    ax.set_yticklabels([])
-    ax.tick_params(colors="#888888", labelsize=10)
-    ax.yaxis.grid(True, linestyle='dotted', color="#CCCCCC", linewidth=1)
-    ax.xaxis.grid(True, linestyle='solid', color="#DDDDDD", linewidth=1.5)
-    ax.set_rlabel_position(0)
+    ax.set_yticklabels([])  # Opcional: ocultar anillos
+    ax.grid(color="#CCCCCC", linewidth=0.8, linestyle="dotted")
 
     # Título y leyenda
     ax.set_title(f"🧬 Comparativa de rendimiento", fontsize=14, fontweight='bold', color="#222222", pad=15)
@@ -440,7 +407,8 @@ with tabs[6]:
     st.pyplot(fig)
     st.markdown("_Valores normalizados (0-100) para comparación entre variables._")
 
-    # Scouting de la jugadora 1
-    texto = f"**Informe de {jugadora_1}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles_1)
+    # Informe scouting
+    texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
     st.markdown(texto)
+
 
