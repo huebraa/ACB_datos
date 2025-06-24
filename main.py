@@ -22,7 +22,8 @@ ligas = {
     "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
 }
 
-# Selección de hasta 3 ligas
+
+# Selección de ligas (máximo 3)
 ligas_seleccionadas = st.sidebar.multiselect(
     "Selecciona hasta 3 ligas",
     options=list(ligas.keys()),
@@ -31,19 +32,16 @@ ligas_seleccionadas = st.sidebar.multiselect(
     key="ligas"
 )
 
-# Controlar máximo 3 ligas seleccionadas
 if len(ligas_seleccionadas) > 3:
     st.sidebar.error("Por favor selecciona un máximo de 3 ligas.")
-    # Para que no siga con más de 3 seleccionadas, puedes resetear o cortar la lista:
     ligas_seleccionadas = ligas_seleccionadas[:3]
 
-# Cargar datos de las ligas seleccionadas y concatenar
 if ligas_seleccionadas:
     dfs = []
     for liga in ligas_seleccionadas:
-        ruta = ligas[liga]
-        df_temp = pd.read_csv(ruta)
-        df_temp["Liga"] = liga  # Agregar columna para identificar liga
+        ruta_csv = ligas[liga]
+        df_temp = cargar_datos(ruta_csv)  # Usamos tu función para cargar y limpiar
+        df_temp["Liga"] = liga  # Añadimos columna para identificar liga
         dfs.append(df_temp)
     df = pd.concat(dfs, ignore_index=True)
 else:
