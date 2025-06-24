@@ -371,48 +371,52 @@ with tabs[6]:
 
     jugadora = st.selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
     fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-    percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in vars_seleccionadas}
+    posicion = fila['Pos']  # Asegúrate de que 'Pos' sea el nombre correcto de la columna de posición
 
-    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
-    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+    # Filtrar por posición
+    df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    # Normalizar valores para todo el dataset
+    # Normalizar valores dentro de la posición
     scaler = MinMaxScaler((0, 100))
-    normalizados = scaler.fit_transform(df_clustered[vars_seleccionadas])
-    df_normalizado = pd.DataFrame(normalizados, columns=vars_seleccionadas)
-    df_normalizado['Player'] = df_clustered['Player']
+    normalizados_pos = scaler.fit_transform(df_posicion[vars_seleccionadas])
+    df_norm_pos = pd.DataFrame(normalizados_pos, columns=vars_seleccionadas)
+    df_norm_pos['Player'] = df_posicion['Player'].values
 
-    valores_jugadora = df_normalizado[df_normalizado['Player'] == jugadora][vars_seleccionadas].values.flatten().tolist()
-    valores_promedio = df_normalizado[vars_seleccionadas].mean().tolist()
+    # Datos jugadora y promedio posición
+    valores_jugadora = df_norm_pos[df_norm_pos['Player'] == jugadora][vars_seleccionadas].values.flatten().tolist()
+    valores_promedio = df_norm_pos[vars_seleccionadas].mean().tolist()
 
-    # Cierre del radar
     valores_jugadora += valores_jugadora[:1]
     valores_promedio += valores_promedio[:1]
 
+    percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila[var]) for var in vars_seleccionadas}
+    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+
+    # Radar
     labels = vars_seleccionadas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    # Radar
     fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("white")
 
     ax.plot(angles, valores_jugadora, linewidth=2.5, color="#006699", label=jugadora)
     ax.fill(angles, valores_jugadora, color="#006699", alpha=0.25)
 
-    ax.plot(angles, valores_promedio, linewidth=2.5, color="#999999", linestyle="dashed", label="Promedio")
+    ax.plot(angles, valores_promedio, linewidth=2.5, color="#999999", linestyle="dashed", label=f"Promedio {posicion}")
     ax.fill(angles, valores_promedio, color="#999999", alpha=0.15)
 
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
     ax.set_yticklabels([])
     ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
-    ax.set_title(f"🧬 Radar de {jugadora} vs promedio", fontsize=14, fontweight='bold', color="#222222", pad=15)
+    ax.set_title(f"Radar de {jugadora} vs promedio en posición {posicion}", fontsize=14, fontweight='bold', color="#222222", pad=15)
     ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
 
     st.pyplot(fig)
-    st.markdown("_Valores normalizados (0-100)._")
+    st.markdown("_Valores normalizados dentro de su posición (0-100)._")
 
-    texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
+    texto = f"**Informe de {jugadora} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
     st.markdown(texto)
 
