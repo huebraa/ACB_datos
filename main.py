@@ -12,12 +12,6 @@ import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
 
-@st.cache_data(show_spinner=False)
-def cargar_datos(path):
-    df = pd.read_csv(path)
-    return df
-
-
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
 st.sidebar.title("Configuración")
@@ -29,30 +23,8 @@ ligas = {
 }
 
 
-ligas_seleccionadas = st.sidebar.multiselect(
-    "Selecciona hasta 3 ligas",
-    options=list(ligas.keys()),
-    default=[],
-    help="Puedes seleccionar hasta 3 ligas",
-    key="ligas"
-)
-
-if len(ligas_seleccionadas) > 3:
-    st.sidebar.error("Por favor selecciona un máximo de 3 ligas.")
-    ligas_seleccionadas = ligas_seleccionadas[:3]
-
-if ligas_seleccionadas:
-    dfs = []
-    for liga in ligas_seleccionadas:
-        ruta_csv = ligas[liga]
-        df_temp = cargar_datos(ruta_csv)
-        df_temp["Liga"] = liga
-        dfs.append(df_temp)
-    df = pd.concat(dfs, ignore_index=True)
-    st.write(df)
-else:
-    st.warning("Selecciona al menos una liga para mostrar datos.")
-    st.stop()
+liga_seleccionada = st.sidebar.selectbox("Selecciona la liga", list(ligas.keys()))
+ruta_csv = ligas[liga_seleccionada]
 
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
