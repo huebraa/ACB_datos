@@ -75,25 +75,17 @@ equipos = st.sidebar.multiselect(
 
 min_min = int(df['MIN'].min())
 max_min = int(df['MIN'].max())
-margen = 5
-
+# Inicializa el valor solo si no está ya en session_state
 if "minutos" not in st.session_state:
-    st.session_state["minutos"] = (min_min, max_min)
+    st.session_state["minutos"] = (int(df['MIN'].min()), int(df['MIN'].max()))
 
 minutos_seleccionados = st.sidebar.slider(
     "Filtrar por minutos jugados (MIN)",
-    min_min,
-    max_min,
-    value=st.session_state["minutos"],
+    int(df['MIN'].min()),
+    int(df['MIN'].max()),
     key="minutos"
 )
 
-minutos_filtrado = (
-    max(min_min, minutos_seleccionados[0] - margen),
-    min(max_min, minutos_seleccionados[1] + margen)
-)
-
-df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_filtrado)
 
 
 
