@@ -73,17 +73,21 @@ equipos = st.sidebar.multiselect(
     key="equipos"
 )
 
+min_min = int(df['MIN'].min())
+max_min = int(df['MIN'].max())
 margen = 5
 
-# El slider mantiene el rango exacto seleccionado por el usuario
+# Inicializa sesión si no está
+if "minutos" not in st.session_state:
+    st.session_state["minutos"] = (min_min, max_min)
+
 minuto_min_selec, minuto_max_selec = st.session_state["minutos"]
 
-# Luego al filtrar, agregás el margen para incluir ±5 minutos extra
 df_filtrado = df[
     (df["MIN"] >= max(min_min, minuto_min_selec - margen)) &
     (df["MIN"] <= min(max_min, minuto_max_selec + margen))
-    # + otros filtros acá
 ]
+
 
 
 def aplicar_filtros(df, posiciones, equipos, minutos):
