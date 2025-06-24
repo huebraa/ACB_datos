@@ -14,6 +14,17 @@ from scipy.stats import percentileofscore
 
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
+st.sidebar.title("Configuración")
+
+# --- Selector de Liga ---
+ligas = {
+    "Liga ACB": "datos/estadisticas_acb_2025.csv",
+    "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
+}
+
+liga_seleccionada = st.sidebar.selectbox("Selecciona la liga", list(ligas.keys()))
+ruta_csv = ligas[liga_seleccionada]
+
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
 def cargar_datos(path="estadisticas_acb_2025.csv"):
