@@ -89,8 +89,8 @@ minutos_seleccionados = st.sidebar.slider(
 )
 
 # Aplica filtro con margen ±1, respetando los límites min/max
-min_filtrado = max(min_min, minutos_seleccionados[0] - 1)
-max_filtrado = min(max_min, minutos_seleccionados[1] + 1)
+min_filtrado = max(min_min, minutos_seleccionados[0] - +5)
+max_filtrado = min(max_min, minutos_seleccionados[1] - 5)
 
 df_filtrado = df[(df['MIN'] >= min_filtrado) & (df['MIN'] <= max_filtrado)]
 
