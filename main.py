@@ -29,7 +29,6 @@ ruta_csv = ligas[liga_seleccionada]
 @st.cache_data(show_spinner=False)
 def cargar_datos(path="estadisticas_acb_2025.csv"):
     df = pd.read_csv(path)
-    
     # Limpieza básica
     for col in ['Ast/TO', 'Stl/TO']:
         if col in df.columns:
@@ -43,7 +42,6 @@ def cargar_datos(path="estadisticas_acb_2025.csv"):
 
     return df
 
-# Llamada a la función
 df = cargar_datos()
 
 
