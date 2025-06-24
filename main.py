@@ -356,44 +356,39 @@ with tabs[5]:
         st.pyplot(fig)
 
 # TAB 7: Scouting Report
-with tabs[6]:
-    def generar_texto_scouting(fortalezas, debilidades, percentiles):
-        texto = ""
-        if fortalezas:
-            texto += "🟢 **Fortalezas:** Destaca en " + ", ".join(
-                [f"{v} (percentil {int(percentiles[v])})" for v in fortalezas]) + ".\n\n"
-        if debilidades:
-            texto += "🔴 **Debilidades:** Puede mejorar en " + ", ".join(
-                [f"{v} (percentil {int(percentiles[v])})" for v in debilidades]) + ".\n\n"
-        if not fortalezas and not debilidades:
-            texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
-        return texto
+fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
 
-    jugadora = st.selectbox("Selecciona una jugadora", df_clustered['Player'].unique(), key="scouting_player")
-    fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-    percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in vars_seleccionadas}
+# Colores y estilo tipo Ben Griffis
+color_base = "#30A9DE"
+fill_color = "#30A9DEAA"  # color con transparencia
 
-    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
-    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
+# Fondo limpio
+fig.patch.set_facecolor('#F8F9FA')
+ax.set_facecolor('#F8F9FA')
 
-    valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[vars_seleccionadas]).T
-    valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-    valores_radar = valores_dict[jugadora].tolist()
-    valores_radar += valores_radar[:1]
+# Plot y relleno
+ax.plot(angles, valores_radar, color=color_base, linewidth=2.5)
+ax.fill(angles, valores_radar, color=fill_color, alpha=0.4)
 
-    labels = vars_seleccionadas
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
+# Estética de ejes
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
+ax.set_yticklabels([])
+ax.grid(color="#DDDDDD", linewidth=0.8)
+ax.spines['polar'].set_visible(False)
 
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    ax.plot(angles, valores_radar, linewidth=2, label=jugadora)
-    ax.fill(angles, valores_radar, alpha=0.25)
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels)
-    ax.set_title(f"Radar de {jugadora}")
+# Título estilizado
+ax.set_title(f"{jugadora}", fontsize=16, color="#222222", pad=20, weight='bold')
 
-    st.pyplot(fig)
-    st.markdown("_Valores normalizados (0-100) para comparación entre variables._")
+# Añade anotaciones opcionales para valores extremos
+for i, val in enumerate(valores_radar[:-1]):
+    if val > 85 or val < 15:
+        ax.annotate(f"{int(val)}", 
+                    (angles[i], val + 5), 
+                    color=color_base, 
+                    fontsize=9, 
+                    ha='center', 
+                    fontweight='bold')
 
-    texto = f"**Informe de {jugadora}**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
-    st.markdown(texto)
+st.pyplot(fig)
+
