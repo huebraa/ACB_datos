@@ -357,80 +357,79 @@ with tabs[5]:
 
 # TAB 7: Scouting Report
 with tabs[6]:
-
-    def generar_texto_scouting(nombre, fortalezas, debilidades, percentiles):
-        texto = f"### 📋 Informe Técnico: {nombre}\n\n"
+    def generar_texto_scouting(fortalezas, debilidades, percentiles):
+        texto = ""
         if fortalezas:
-            texto += "**🟢 Fortalezas (Percentil ≥ 75):**\n"
-            for v in fortalezas:
-                texto += f"- {v} (percentil {int(percentiles[v])})\n"
-            texto += "\n"
+            texto += "🟢 **Fortalezas:** Destaca en " + ", ".join(
+                [f"{v} (percentil {int(percentiles[v])})" for v in fortalezas]) + ".\n\n"
         if debilidades:
-            texto += "**🔴 Debilidades (Percentil ≤ 25):**\n"
-            for v in debilidades:
-                texto += f"- {v} (percentil {int(percentiles[v])})\n"
-            texto += "\n"
+            texto += "🔴 **Debilidades:** Puede mejorar en " + ", ".join(
+                [f"{v} (percentil {int(percentiles[v])})" for v in debilidades]) + ".\n\n"
         if not fortalezas and not debilidades:
-            texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n"
+            texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
         return texto
 
-    st.header("🏋️ Informe y Comparación de Jugadoras")
+    st.subheader("🔍 Scouting individual y comparativo")
 
     col1, col2 = st.columns(2)
-    jugadora_1 = col1.selectbox("Selecciona la Jugadora 1", df_clustered['Player'].unique(), key="jugadora1")
-    jugadora_2 = col2.selectbox("Selecciona la Jugadora 2 (opcional)", ["Ninguna"] + list(df_clustered['Player'].unique()), key="jugadora2")
+    with col1:
+        jugadora_1 = st.selectbox("Selecciona una jugadora principal", df_clustered['Player'].unique(), key="scouting_1")
+    with col2:
+        jugadora_2 = st.selectbox("Comparar con otra jugadora (opcional)", ["Promedio de su posición"] + list(df_clustered['Player'].unique()), key="scouting_2")
 
-    def get_radar_data(jugadora):
-        fila = df_clustered[df_clustered['Player'] == jugadora].iloc[0]
-        percentiles = {var: percentileofscore(df_clustered[var].dropna(), fila[var]) for var in vars_seleccionadas}
-        fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
-        debilidades = [var for var, pct in percentiles.items() if pct <= 25]
-        valores_normalizados = MinMaxScaler((0, 100)).fit_transform(df_clustered[vars_seleccionadas]).T
-        valores_dict = dict(zip(df_clustered['Player'], valores_normalizados.T))
-        valores_radar = valores_dict[jugadora].tolist()
-        valores_radar += valores_radar[:1]
-        return valores_radar, percentiles, fortalezas, debilidades
+    fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
+    posicion = fila_1['Pos']
+    df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    valores_1, percentiles_1, fuertes_1, debiles_1 = get_radar_data(jugadora_1)
+    scaler = MinMaxScaler((0, 100))
+    normalizados = scaler.fit_transform(df_clustered[vars_seleccionadas])
+    df_norm = pd.DataFrame(normalizados, columns=vars_seleccionadas)
+    df_norm['Player'] = df_clustered['Player'].values
+
+    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_seleccionadas].values.flatten().tolist()
+
+    if jugadora_2 == "Promedio de su posición":
+        df_pos = df_clustered[df_clustered['Pos'] == posicion]
+        valores_2 = scaler.transform(df_pos[vars_seleccionadas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio {posicion}"
+        color_2 = "#999999"
+        linestyle_2 = "dashed"
+    else:
+        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
+        nombre_2 = jugadora_2
+        color_2 = "#cc5c5c"
+        linestyle_2 = "solid"
+
+    valores_1 += valores_1[:1]
+    valores_2 += valores_2[:1]
+
     labels = vars_seleccionadas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    fig, ax = plt.subplots(figsize=(5, 5), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor("white")
 
-    # Radar de Jugadora 1
-    ax.plot(angles, valores_1, linewidth=2, linestyle='solid', label=jugadora_1, color="#1f77b4")
-    ax.fill(angles, valores_1, alpha=0.25, color="#1f77b4")
+    ax.plot(angles, valores_1, linewidth=2.5, color="#006699", label=jugadora_1)
+    ax.fill(angles, valores_1, color="#006699", alpha=0.25)
 
-    if jugadora_2 != "Ninguna":
-        valores_2, percentiles_2, _, _ = get_radar_data(jugadora_2)
-        ax.plot(angles, valores_2, linewidth=2, linestyle='dashed', label=jugadora_2, color="#ff7f0e")
-        ax.fill(angles, valores_2, alpha=0.15, color="#ff7f0e")
+    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2)
+    ax.fill(angles, valores_2, color=color_2, alpha=0.15)
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
     ax.set_yticklabels([])
-    ax.set_title(f"Comparación de Radar", fontsize=13, fontweight='bold', pad=20)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
+    ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
+    ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=14, fontweight='bold', color="#222222", pad=15)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
 
     st.pyplot(fig)
-    st.markdown("_Valores normalizados (0-100) para comparación entre variables._")
+    st.markdown("_Valores normalizados (0-100)._")
 
-    # Reportes
-    st.markdown(generar_texto_scouting(jugadora_1, fuertes_1, debiles_1, percentiles_1))
+    percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
+    fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
+    debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-    if jugadora_2 != "Ninguna":
-        _, percentiles_2, fuertes_2, debiles_2 = get_radar_data(jugadora_2)
-        st.markdown(generar_texto_scouting(jugadora_2, fuertes_2, debiles_2, percentiles_2))
-
-        # Tabla Comparativa
-        st.markdown("### 📊 Comparativa Directa")
-        st.markdown("| Métrica | " + jugadora_1 + " | " + jugadora_2 + " | Diferencia |")
-        st.markdown("|---|---|---|---|")
-        for var in vars_seleccionadas:
-            val1 = int(percentiles_1[var])
-            val2 = int(percentiles_2[var])
-            diff = val1 - val2
-            st.markdown(f"| {var} | {val1} | {val2} | {diff:+d} |")
-
+    texto = f"**Informe de {jugadora_1} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
+    st.markdown(texto)
 
