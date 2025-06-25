@@ -374,7 +374,11 @@ with tabs[6]:
     with col1:
         jugadora_1 = st.selectbox("Selecciona una jugadora principal", df_clustered['Player'].unique(), key="scouting_1")
     with col2:
-        jugadora_2 = st.selectbox("Comparar con otra jugadora (opcional)", ["Promedio de su posición"] + list(df_clustered['Player'].unique()), key="scouting_2")
+        jugadora_2 = st.selectbox(
+            "Comparar con otra jugadora (opcional)",
+            ["Promedio de su posición", "Promedio de su cluster"] + list(df_clustered['Player'].unique()),
+            key="scouting_2"
+        )
 
     fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
     posicion = fila_1['Pos']
@@ -393,6 +397,15 @@ with tabs[6]:
         nombre_2 = f"Promedio {posicion}"
         color_2 = "#999999"
         linestyle_2 = "dashed"
+
+    elif jugadora_2 == "Promedio de su cluster":
+        cluster_id = fila_1['cluster']
+        df_clu = df_clustered[df_clustered['cluster'] == cluster_id]
+        valores_2 = scaler.transform(df_clu[vars_seleccionadas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio Cluster {cluster_id}"
+        color_2 = "#cc9900"
+        linestyle_2 = "dotted"
+
     else:
         valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
         nombre_2 = jugadora_2
