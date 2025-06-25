@@ -399,8 +399,8 @@ with tabs[6]:
         linestyle_2 = "dashed"
 
     elif jugadora_2 == "Promedio de su cluster":
-        cluster_id = fila_1['cluster']
-        df_clu = df_clustered[df_clustered['cluster'] == cluster_id]
+        cluster_id = fila_1['Cluster']
+        df_clu = df_clustered[df_clustered['Cluster'] == cluster_id]
         valores_2 = scaler.transform(df_clu[vars_seleccionadas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio Cluster {cluster_id}"
         color_2 = "#cc9900"
