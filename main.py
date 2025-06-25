@@ -354,7 +354,6 @@ with tabs[5]:
         fig, ax = plt.subplots(figsize=(10, 8))
         sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
         st.pyplot(fig)
-
 # TAB 7: Scouting Report
 with tabs[6]:
     def generar_texto_scouting(fortalezas, debilidades, percentiles):
@@ -394,21 +393,11 @@ with tabs[6]:
         nombre_2 = f"Promedio {posicion}"
         color_2 = "#999999"
         linestyle_2 = "dashed"
-    
-    elif jugadora_2 == "Promedio de su cluster":
-        cluster_id = fila_1['cluster']
-        df_clu = df_clustered[df_clustered['cluster'] == cluster_id]
-        valores_2 = scaler.transform(df_clu[vars_seleccionadas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio Cluster {cluster_id}"
-        color_2 = "#cc9900"
-        linestyle_2 = "dotted"
-    
     else:
         valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
         nombre_2 = jugadora_2
         color_2 = "#cc5c5c"
         linestyle_2 = "solid"
-
 
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
@@ -441,25 +430,4 @@ with tabs[6]:
     debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
     texto = f"**Informe de {jugadora_1} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
-        # Comparativa con el cluster
-    cluster_jugadora = fila_1['cluster']
-    df_cluster = df_clustered[df_clustered['cluster'] == cluster_jugadora]
-    
-    promedios_cluster = df_cluster[vars_seleccionadas].mean()
-    diferencias = {var: fila_1[var] - promedios_cluster[var] for var in vars_seleccionadas}
-    
-    mayores_ventajas = sorted(diferencias.items(), key=lambda x: -x[1])[:3]
-    mayores_desventajas = sorted(diferencias.items(), key=lambda x: x[1])[:3]
-    
-    texto += f"🔎 **Comparativa con su cluster (Cluster {cluster_jugadora}):**\n\n"
-    
-    if mayores_ventajas:
-        texto += "➡️ Ventajas sobre su cluster: " + ", ".join(
-            [f"{v[0]} (+{v[1]:.1f})" for v in mayores_ventajas]) + ".\n"
-    
-    if mayores_desventajas:
-        texto += "⬅️ Áreas donde rinde por debajo del cluster: " + ", ".join(
-            [f"{v[0]} ({v[1]:.1f})" for v in mayores_desventajas]) + ".\n"
-
     st.markdown(texto)
-
