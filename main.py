@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -171,6 +172,7 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
+# --- Función para describir clusters ---
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
@@ -241,9 +243,6 @@ def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=
 
     return ", ".join(etiquetas)
 
-
-
-
 # --- Visualizaciones y tabs ---
 tabs = st.tabs([
     "📊 Clusters",
@@ -262,16 +261,8 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
-    resultados = [
-    etiquetar_y_prototipar_cluster(df_clustered, cluster_id, vars_seleccionadas)
-    for cluster_id in resumen.index]
-    resumen['Etiqueta'] = [r['etiquetas'] for r in resultados]
-    resumen['Arquetipo'] = [r['arquetipo_principal'] for r in resultados]
-    resumen['Prototipos'] = [", ".join(r['prototipos']) for r in resultados]
-
+    resumen['Etiqueta'] = [describir_cluster_avanzado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
-    df_clustered['PerfilJugador'] = df_clustered['Jugador'] + " — " + df_clustered['ClusterEtiqueta']
-
 
 
     st.dataframe(resumen)
@@ -549,4 +540,3 @@ with tabs[6]:
     st.markdown("_Valores normalizados de 0 a 100._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
-
