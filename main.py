@@ -50,12 +50,12 @@ ligas_dict = {
 st.sidebar.title("Configuración")
 
 ligas_seleccionadas = st.sidebar.multiselect(
-    "Selecciona un máximo de 5 ligas",
+    "Selecciona un máximo de 3 ligas",
     options=list(ligas_dict.keys()),
     default=list(ligas_dict.keys())[:2]
 )
 
-if len(ligas_seleccionadas) > 5:
+if len(ligas_seleccionadas) > 3:
     st.sidebar.error("⚠️ Puedes seleccionar máximo 5 ligas. Por favor, deselecciona algunas.")
     st.stop()
 
