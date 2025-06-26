@@ -555,61 +555,73 @@ with tabs[6]:
 with tabs[7]:
     st.subheader("Scatter Plot personalizado")
 
+    # Variables numéricas para ejes X e Y
     numeric_vars = df_clustered.select_dtypes(include=['number']).columns.tolist()
     var_x = st.selectbox("Variable eje X", options=numeric_vars, index=0)
     var_y = st.selectbox("Variable eje Y", options=numeric_vars, index=1 if len(numeric_vars) > 1 else 0)
 
+    # Rango dinámico para los ejes
     x_min, x_max = float(df_clustered[var_x].min()), float(df_clustered[var_x].max())
     y_min, y_max = float(df_clustered[var_y].min()), float(df_clustered[var_y].max())
 
     x_range = st.slider(f"Rango para {var_x}", x_min, x_max, (x_min, x_max))
     y_range = st.slider(f"Rango para {var_y}", y_min, y_max, (y_min, y_max))
 
+    # Filtro clusters
     clusters_unicos = sorted(df_clustered['Cluster'].unique())
     cluster_filter = st.multiselect("Filtrar por clusters", options=clusters_unicos, default=clusters_unicos)
 
+    # Filtrado datos
     df_scatter = df_clustered[
         (df_clustered['Cluster'].isin(cluster_filter)) &
         (df_clustered[var_x] >= x_range[0]) & (df_clustered[var_x] <= x_range[1]) &
         (df_clustered[var_y] >= y_range[0]) & (df_clustered[var_y] <= y_range[1])
     ]
 
+    # Variables para color y tamaño
     all_vars = df_clustered.columns.tolist()
     color_var = st.selectbox("Variable para color (categórica o numérica)", ["Cluster"] + all_vars, index=0)
     size_vars = df_clustered.select_dtypes(include=['number']).columns.tolist()
     size_var = st.selectbox("Variable para tamaño (numérica)", ["Ninguna"] + size_vars, index=0)
 
-    # Nueva selección para forma de marcador
-    categorical_vars = df_clustered.select_dtypes(include=['object', 'category']).columns.tolist()
-    shape_var = st.selectbox("Variable para forma (categórica)", ["Ninguna"] + categorical_vars, index=0)
-
     color_arg = df_scatter[color_var] if color_var != "Ninguna" else None
     size_arg = df_scatter[size_var] if size_var != "Ninguna" else None
-    shape_arg = df_scatter[shape_var] if shape_var != "Ninguna" else None
 
-    log_x = st.checkbox("Escala logarítmica eje X", value=False)
-    log_y = st.checkbox("Escala logarítmica eje Y", value=False)
+    # Checkbox para mostrar línea de regresión
+    mostrar_regresion = st.checkbox("Mostrar línea de regresión", value=False)
 
-    fig = px.scatter(
-        df_scatter,
-        x=var_x,
-        y=var_y,
-        color=color_arg,
-        size=size_arg,
-        symbol=shape_arg,
-        hover_data=['Player', 'Team_completo', 'Pos'],
-        title=f"Scatter Plot de {var_x} vs {var_y}",
-        color_discrete_sequence=px.colors.qualitative.Set1,
-        height=600
-    )
+    # Creación del gráfico con o sin línea de regresión
+    if mostrar_regresion:
+        fig = px.scatter(
+            df_scatter,
+            x=var_x,
+            y=var_y,
+            color=color_arg,
+            size=size_arg,
+            hover_data=['Player', 'Team_completo', 'Pos'],
+            title=f"Scatter Plot de {var_x} vs {var_y} con línea de regresión",
+            color_discrete_sequence=px.colors.qualitative.Set1,
+            trendline="ols",
+            height=600
+        )
+    else:
+        fig = px.scatter(
+            df_scatter,
+            x=var_x,
+            y=var_y,
+            color=color_arg,
+            size=size_arg,
+            hover_data=['Player', 'Team_completo', 'Pos'],
+            title=f"Scatter Plot de {var_x} vs {var_y}",
+            color_discrete_sequence=px.colors.qualitative.Set1,
+            height=600
+        )
+
     fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
-    fig.update_layout(
-        legend_title_text='Color',
-        xaxis_type='log' if log_x else 'linear',
-        yaxis_type='log' if log_y else 'linear'
-    )
+    fig.update_layout(legend_title_text='Color')
     st.plotly_chart(fig, use_container_width=True)
 
+    # Botón para descargar gráfico como PNG
     if st.button("Descargar gráfico como PNG"):
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
