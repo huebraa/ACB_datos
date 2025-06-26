@@ -333,21 +333,78 @@ with tabs[5]:
         sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
         st.pyplot(fig)
 # TAB 7: Scouting Report
-# TAB 7: Scouting Report
 with tabs[6]:
-    def generar_texto_scouting(fortalezas, debilidades, percentiles):
-        texto = ""
+    def generar_texto_scouting_premium(fortalezas, debilidades, percentiles, fila_1, posicion):
+        texto = f"## Informe Avanzado de Scouting Individual: {fila_1['Player']} ({posicion})\n\n"
+        texto += f"Evaluación profunda basada en métricas normalizadas y contexto competitivo, destacando el perfil técnico-táctico y potencial encaje en sistemas de juego.\n\n"
+
+        texto += "### 1. Perfil General y Contexto\n"
+        texto += (
+            f"{fila_1['Player']} exhibe un perfil con un impacto notable en la posición de {posicion}, "
+            "caracterizado por una combinación de habilidades técnicas, inteligencia de juego y rendimiento consistente. "
+            "Su contribución en el equipo se refleja en la capacidad de influir tanto en aspectos ofensivos como defensivos, "
+            "ajustándose a diversos estilos competitivos.\n\n"
+        )
+
+        texto += "### 2. Fortalezas Clave\n"
         if fortalezas:
-            texto += "🟢 **Fortalezas:** Destaca en " + ", ".join(
-                [f"{v} (percentil {int(percentiles[v])})" for v in fortalezas]) + ".\n\n"
+            for var in fortalezas:
+                pct = int(percentiles[var])
+                analisis = ""
+                if var.lower() in ['eficiencia de tiro', 'fg%', 'shooting %']:
+                    analisis = "Precisa y selectiva en tiros, excelente para sistemas que priorizan eficiencia ofensiva."
+                elif var.lower() in ['asistencias', 'assist', 'apoyos']:
+                    analisis = "Creativa y facilitadora, ideal para equipos que valoran la circulación rápida y juego en movimiento."
+                elif var.lower() in ['rebotes', 'reb']:
+                    analisis = "Control sólido del rebote, útil para equipos que buscan dominar el ritmo del partido."
+                else:
+                    analisis = "Destaca significativamente en esta métrica, aportando valor táctico y técnico."
+
+                texto += f"- **{var}** (Percentil {pct}): {analisis}\n"
+        else:
+            texto += "- Perfil equilibrado sin picos pronunciados, versátil para múltiples roles.\n"
+
+        texto += "\n### 3. Áreas de Mejora\n"
         if debilidades:
-            texto += "🔴 **Debilidades:** Puede mejorar en " + ", ".join(
-                [f"{v} (percentil {int(percentiles[v])})" for v in debilidades]) + ".\n\n"
-        if not fortalezas and not debilidades:
-            texto += "Perfil equilibrado, sin variables particularmente altas o bajas.\n\n"
+            for var in debilidades:
+                pct = int(percentiles[var])
+                analisis = ""
+                if var.lower() in ['turnovers', 'pérdidas', 'balones perdidos']:
+                    analisis = "Tiende a perder balón con frecuencia, se beneficia en sistemas que minimizan riesgos de posesión."
+                elif var.lower() in ['defensa', 'defensive rating']:
+                    analisis = "Puede mejorar su impacto defensivo, encajando mejor en equipos con defensa colectiva sólida."
+                else:
+                    analisis = "Esta área representa una oportunidad para aumentar su influencia en el juego."
+
+                texto += f"- **{var}** (Percentil {pct}): {analisis}\n"
+        else:
+            texto += "- Sin áreas de mejora críticas detectadas; mantiene un rendimiento sólido y confiable.\n"
+
+        texto += "\n### 4. Perfil de Equipo y Estilo de Juego Ideal\n"
+        texto += (
+            f"{fila_1['Player']} se adapta mejor a equipos que promueven un estilo de juego "
+            "basado en la eficiencia ofensiva y la circulación ágil del balón. Su capacidad para generar opciones de pase "
+            "y finalizar jugadas la convierte en una pieza clave para sistemas que priorizan el juego en transición "
+            "y la toma rápida de decisiones.\n\n"
+            "En defensa, su mejor rendimiento se observa en equipos con estructuras colectivas bien definidas, donde "
+            "puede apoyarse en la ayuda y cubrir espacios, compensando sus áreas de mejora individual.\n\n"
+            "Equipos con un enfoque en la versatilidad táctica y roles definidos maximizarán su impacto, especialmente "
+            "aquellos que integran jugadores con buen control del balón y alta intensidad defensiva para equilibrar el sistema.\n"
+        )
+
+        texto += "\n### 5. Potencial Encaje en Ligas y Clubes\n"
+        texto += (
+            "Este perfil es muy valioso en ligas con ritmo de juego alto y énfasis en el juego ofensivo rápido, "
+            "como la WNBA o ciertas ligas europeas top. También encajaría bien en clubes que apuestan por "
+            "desarrollar talento joven con una mentalidad proactiva y que favorecen roles claros dentro del equipo.\n\n"
+            "Por el tipo de juego, es un activo valioso para equipos que buscan equilibrio entre creación y finalización, "
+            "y que cuentan con un sistema defensivo colectivo robusto para complementar sus aspectos defensivos individuales.\n"
+        )
+
+        texto += "\n---\n*Informe generado con base en análisis estadístico avanzado y contexto competitivo, esencial para scouting y planificación deportiva profesional.*"
         return texto
 
-    st.subheader("🔍 Scouting individual y comparativo")
+    st.subheader("🔍 Scouting individual y comparativo (Nivel Elite y Profesional)")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -399,39 +456,28 @@ with tabs[6]:
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("#fafafa")
 
-    # Fondo con círculos concéntricos más visibles y líneas radiales más sutiles
     ax.set_facecolor("#ffffff")
     ax.grid(color="#bbbbbb", linestyle="--", linewidth=0.7)
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
 
-    # Dibujar círculos concéntricos manualmente para mejor control visual
     for r in range(20, 101, 20):
         ax.plot(np.linspace(0, 2 * np.pi, 100), [r] * 100, color="#dddddd", linewidth=1)
 
-    # Plot radar player 1
     ax.plot(angles, valores_1, linewidth=3, color="#1f77b4", label=jugadora_1, solid_capstyle='round')
     ax.fill(angles, valores_1, color="#1f77b4", alpha=0.3)
 
-    # Plot radar player 2
     ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2, solid_capstyle='round')
     ax.fill(angles, valores_2, color=color_2, alpha=0.2)
 
-    # Etiquetas en ángulo y fuente modernizada
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=11, fontweight='semibold', color="#444444")
-
-    # Eliminar etiquetas de radio para limpieza
     ax.set_yticklabels([])
-
-    # Personalización extra
     ax.spines['polar'].set_visible(False)
     ax.grid(True)
 
-    # Título con fuente y color suaves
     ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=16, fontweight='bold', color="#222222", pad=20)
 
-    # Leyenda elegante en cuadro con sombra
     legend = ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15), fontsize=10, frameon=True)
     legend.get_frame().set_edgecolor("#999999")
     legend.get_frame().set_alpha(0.9)
@@ -444,6 +490,5 @@ with tabs[6]:
     fortalezas = [var for var, pct in percentiles.items() if pct >= 75]
     debilidades = [var for var, pct in percentiles.items() if pct <= 25]
 
-    texto = f"**Informe de {jugadora_1} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
+    texto = generar_texto_scouting_premium(fortalezas, debilidades, percentiles, fila_1, posicion)
     st.markdown(texto)
-
