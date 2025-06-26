@@ -41,11 +41,13 @@ ligas_filtradas = st.sidebar.multiselect(
 df = df[df['Liga'].isin(ligas_filtradas)]
 
 
-# --- CARGA DATOS ---
+st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
+st.sidebar.title("Configuración")
+
+# --- Opciones de ligas y carga dinámica ---
 @st.cache_data(show_spinner=False)
-def cargar_datos(path="estadisticas_acb_2025.csv"):
+def cargar_datos(path):
     df = pd.read_csv(path)
-    # Limpieza básica
     for col in ['Ast/TO', 'Stl/TO']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -55,10 +57,34 @@ def cargar_datos(path="estadisticas_acb_2025.csv"):
     for col in cols_pct:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-
     return df
 
-df = cargar_datos(ruta_csv)
+# Diccionario de rutas
+ligas_dict = {
+    "Liga ACB": "datos/estadisticas_acb_2025.csv",
+    "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
+}
+
+# Selección múltiple de ligas
+ligas_seleccionadas = st.sidebar.multiselect(
+    "Selecciona una o más ligas",
+    options=list(ligas_dict.keys()),
+    default=list(ligas_dict.keys())
+)
+
+# Cargar los datasets seleccionados
+dfs_ligas = []
+for liga in ligas_seleccionadas:
+    df_liga = cargar_datos(ligas_dict[liga])
+    df_liga["Liga"] = liga  # Añadir columna con nombre de liga
+    dfs_ligas.append(df_liga)
+
+# Combinar
+df = pd.concat(dfs_ligas, ignore_index=True)
+
+if df.empty:
+    st.warning("Selecciona al menos una liga para continuar.")
+    st.stop()
 
 
 
