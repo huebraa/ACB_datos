@@ -142,6 +142,10 @@ mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar
 mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key="mostrar_similares")
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
 
+st.sidebar.markdown("---")
+st.sidebar.caption("Desarrollado por Asier Huebra Aguinaga @MrLopez_24 • Datos de RealGM.com")
+
+
 # --- Preprocesamiento ---
 @st.cache_data(show_spinner=False)
 def preprocesar(df_local, variables_local):
