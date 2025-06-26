@@ -403,6 +403,7 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
+
     vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
@@ -475,67 +476,91 @@ with tabs[6]:
         color_2 = "firebrick"
         dash_2 = 'solid'
 
-    # -- En vez del radar Plotly, llama a esta función --
+    # Cerrar el radar
+    valores_1 += valores_1[:1]
+    valores_2 += valores_2[:1]
+    labels = vars_todas + vars_todas[:1]
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from scipy.stats import percentileofscore
-    import matplotlib.patches as mpatches
+    # Crear radar con Plotly
+    fig = go.Figure()
 
-    def pizza_chart_simple(fila_1, df_posicion, vars_seleccionadas):
-        percentiles = [percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas]
-        valores_norm = [min(max(pct, 0), 100) for pct in percentiles]
+    # Bloque perfil
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1[:len(vars_perfil)+1],
+        theta=labels[:len(vars_perfil)+1],
+        fill='toself',
+        name=jugadora_1 + " - Perfil",
+        line=dict(color='#006699', width=3),
+        fillcolor='rgba(0,102,153,0.3)',
+        hoverinfo='all'
+    ))
 
-        colores = []
-        for pct in percentiles:
-            if pct > 90:
-                colores.append('#007AFF')  # Azul Elite
-            elif pct > 65:
-                colores.append('#00C851')  # Verde
-            elif pct > 35:
-                colores.append('#FFBB33')  # Amarillo
-            else:
-                colores.append('#FF4444')  # Rojo
+    # Bloque rendimiento
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1[len(vars_perfil):],
+        theta=labels[len(vars_perfil):],
+        fill='toself',
+        name=jugadora_1 + " - Rendimiento",
+        line=dict(color='#ffa500', width=3),
+        fillcolor='rgba(255,165,0,0.3)',
+        hoverinfo='all'
+    ))
 
-        N = len(vars_seleccionadas)
-        angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    # Comparativa jugador 2 - perfil
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2[:len(vars_perfil)+1],
+        theta=labels[:len(vars_perfil)+1],
+        fill='toself',
+        name=nombre_2 + " - Perfil",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(128,128,128,0.2)' if dash_2 == 'dash' else 'rgba(255,165,0,0.15)',
+        hoverinfo='all'
+    ))
 
-        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-        ax.set_theta_offset(np.pi / 2)
-        ax.set_theta_direction(-1)
+    # Comparativa jugador 2 - rendimiento
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2[len(vars_perfil):],
+        theta=labels[len(vars_perfil):],
+        fill='toself',
+        name=nombre_2 + " - Rendimiento",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(255,165,0,0.15)',
+        hoverinfo='all'
+    ))
 
-        bars = ax.bar(angles, valores_norm, color=colores, alpha=0.8, width=2*np.pi/N*0.9, edgecolor='black', linewidth=1)
+    fig.update_layout(
+        polar=dict(
+            bgcolor="#f9f9f9",
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                tickvals=[0, 25, 50, 75, 100],
+                ticktext=["0", "25", "50", "75", "100"],
+                gridcolor="lightgray",
+                gridwidth=1
+            ),
+            angularaxis=dict(
+                tickfont=dict(size=10, color="black", family="Arial Black"),
+            )
+        ),
+        legend=dict(
+            title="Leyenda",
+            font=dict(size=12),
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+            x=1.1,
+            y=1
+        ),
+        margin=dict(t=50, b=50, l=50, r=150),
+        title=f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento",
+        title_font_size=18
+    )
 
-        for angle, label in zip(angles, vars_seleccionadas):
-            rotation = np.degrees(angle)
-            align = "right" if angle > np.pi else "left"
-            ax.text(angle, 105, label, size=12, horizontalalignment=align, verticalalignment='center')
+    st.plotly_chart(fig, use_container_width=True)
 
-        for bar, val in zip(bars, valores_norm):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width() / 2, height / 2, f"{int(val)}", ha='center', va='center', fontsize=11, color='black', fontweight='bold')
-
-        ax.set_ylim(0, 110)
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        ax.grid(False)
-        ax.spines['polar'].set_visible(False)
-
-        legend_elements = [
-            mpatches.Patch(color='#007AFF', label='Elite (>90)'),
-            mpatches.Patch(color='#00C851', label='Por encima del promedio (66-90)'),
-            mpatches.Patch(color='#FFBB33', label='Promedio (36-65)'),
-            mpatches.Patch(color='#FF4444', label='Bajo promedio (<35)'),
-        ]
-        ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.3, 1))
-
-        plt.title(f"Perfil Radial - {fila_1['Player']}", fontsize=16, fontweight='bold')
-        plt.tight_layout()
-        st.pyplot(fig)
-
-    pizza_chart_simple(fila_1, df_posicion, vars_perfil)
-
-    st.markdown("_El gráfico radial muestra los percentiles para las variables de perfil._")
+    st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
+    st.markdown("_Valores normalizados de 0 a 100._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
