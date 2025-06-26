@@ -403,8 +403,7 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
-
-    vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
+    vars_perfil = vars_seleccionadas  # Definidas anteriormente en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
 
@@ -476,86 +475,84 @@ with tabs[6]:
         color_2 = "firebrick"
         dash_2 = 'solid'
 
-   # ⚙️ Preparamos etiquetas y valores extendidos
-        labels_perfil = vars_perfil + [vars_perfil[0]]
-        labels_rend = vars_rendimiento + [vars_rendimiento[0]]
-        
-        valores_1_perfil = valores_1[:len(vars_perfil)] + [valores_1[0]]
-        valores_1_rend = valores_1[len(vars_perfil):] + [valores_1[len(vars_perfil)]]
-        
-        valores_2_perfil = valores_2[:len(vars_perfil)] + [valores_2[0]]
-        valores_2_rend = valores_2[len(vars_perfil):] + [valores_2[len(vars_perfil)]]
-        
-        # 🎯 Creamos figura
-        fig = go.Figure()
-        
-        # 🔵 Perfil jugadora 1
-        fig.add_trace(go.Scatterpolar(
-            r=valores_1_perfil,
-            theta=labels_perfil,
-            fill='toself',
-            name=f"{jugadora_1} - Perfil",
-            line=dict(color='#1f77b4', width=3),
-            fillcolor='rgba(31, 119, 180, 0.2)'
-        ))
-        
-        # 🟠 Rendimiento jugadora 1
-        fig.add_trace(go.Scatterpolar(
-            r=valores_1_rend,
-            theta=labels_rend,
-            fill='toself',
-            name=f"{jugadora_1} - Rendimiento",
-            line=dict(color='#ff7f0e', width=3),
-            fillcolor='rgba(255, 127, 14, 0.2)'
-        ))
-        
-        # ⚪ Perfil comparado
-        fig.add_trace(go.Scatterpolar(
-            r=valores_2_perfil,
-            theta=labels_perfil,
-            fill='toself',
-            name=f"{nombre_2} - Perfil",
-            line=dict(color=color_2, width=2, dash=dash_2),
-            fillcolor='rgba(128,128,128,0.15)' if dash_2 != 'solid' else 'rgba(255,165,0,0.15)'
-        ))
-        
-        # 🔴 Rendimiento comparado
-        fig.add_trace(go.Scatterpolar(
-            r=valores_2_rend,
-            theta=labels_rend,
-            fill='toself',
-            name=f"{nombre_2} - Rendimiento",
-            line=dict(color=color_2, width=2, dash=dash_2),
-            fillcolor='rgba(255,165,0,0.1)'
-        ))
-        
-        # 🎨 Layout mejorado
-        fig.update_layout(
-            title=dict(text=f"{jugadora_1} vs {nombre_2}", x=0.5, font=dict(size=20)),
-            polar=dict(
-                bgcolor="#ffffff",
-                radialaxis=dict(visible=True, range=[0, 100], tickvals=[0, 25, 50, 75, 100], tickfont=dict(size=10)),
-                angularaxis=dict(tickfont=dict(size=11))
-            ),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.3,
-                xanchor="center",
-                x=0.5,
-                font=dict(size=11)
-            ),
-            margin=dict(l=30, r=30, t=60, b=60),
-            height=600
-        )
+    # Preparamos etiquetas y valores para radar
+    labels_perfil = vars_perfil + [vars_perfil[0]]
+    labels_rend = vars_rendimiento + [vars_rendimiento[0]]
+
+    valores_1_perfil = valores_1[:len(vars_perfil)] + [valores_1[0]]
+    valores_1_rend = valores_1[len(vars_perfil):] + [valores_1[len(vars_perfil)]]
+
+    valores_2_perfil = valores_2[:len(vars_perfil)] + [valores_2[0]]
+    valores_2_rend = valores_2[len(vars_perfil):] + [valores_2[len(vars_perfil)]]
+
+    fig = go.Figure()
+
+    # Perfil jugadora 1
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1_perfil,
+        theta=labels_perfil,
+        fill='toself',
+        name=f"{jugadora_1} - Perfil",
+        line=dict(color='#1f77b4', width=3),
+        fillcolor='rgba(31, 119, 180, 0.2)'
+    ))
+
+    # Rendimiento jugadora 1
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1_rend,
+        theta=labels_rend,
+        fill='toself',
+        name=f"{jugadora_1} - Rendimiento",
+        line=dict(color='#ff7f0e', width=3),
+        fillcolor='rgba(255, 127, 14, 0.2)'
+    ))
+
+    # Perfil comparado
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2_perfil,
+        theta=labels_perfil,
+        fill='toself',
+        name=f"{nombre_2} - Perfil",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(128,128,128,0.15)' if dash_2 != 'solid' else 'rgba(255,165,0,0.15)'
+    ))
+
+    # Rendimiento comparado
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2_rend,
+        theta=labels_rend,
+        fill='toself',
+        name=f"{nombre_2} - Rendimiento",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(255,165,0,0.1)'
+    ))
+
+    fig.update_layout(
+        title=dict(text=f"{jugadora_1} vs {nombre_2}", x=0.5, font=dict(size=20)),
+        polar=dict(
+            bgcolor="#ffffff",
+            radialaxis=dict(visible=True, range=[0, 100], tickvals=[0, 25, 50, 75, 100], tickfont=dict(size=10)),
+            angularaxis=dict(tickfont=dict(size=11))
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11)
+        ),
+        margin=dict(l=30, r=30, t=60, b=60),
+        height=600
+    )
 
     st.plotly_chart(fig, use_container_width=True)
-
 
     st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
     st.markdown("_Valores normalizados de 0 a 100._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
+
 
 with tabs[7]:
     st.subheader("Scatter Plot personalizado")
