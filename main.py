@@ -403,6 +403,7 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
+
     vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
@@ -480,7 +481,7 @@ with tabs[6]:
     valores_2 += valores_2[:1]
     labels = vars_todas + vars_todas[:1]
 
-    # Radar original con Perfil + Rendimiento (igual que antes)
+    # Crear radar con Plotly
     fig = go.Figure()
 
     # Bloque perfil
@@ -560,52 +561,6 @@ with tabs[6]:
 
     st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
     st.markdown("_Valores normalizados de 0 a 100._")
-
-    # --- Gráfico tipo Pizza solo para vars_perfil (estilo mplsoccer) ---
-    labels_pizza = vars_perfil + [vars_perfil[0]]  # Cerrar círculo
-    valores_1_pizza = valores_1[:len(vars_perfil)] + [valores_1[0]]
-    valores_2_pizza = valores_2[:len(vars_perfil)] + [valores_2[0]]
-
-    fig_pizza = go.Figure()
-
-    fig_pizza.add_trace(go.Scatterpolar(
-        r=valores_1_pizza,
-        theta=labels_pizza,
-        fill='toself',
-        name=jugadora_1,
-        line_color='rgba(0, 102, 153, 1)',
-        fillcolor='rgba(0, 102, 153, 0.3)',
-        hoverinfo='all'
-    ))
-
-    fig_pizza.add_trace(go.Scatterpolar(
-        r=valores_2_pizza,
-        theta=labels_pizza,
-        fill='toself',
-        name=nombre_2,
-        line_color='rgba(255, 165, 0, 1)',
-        fillcolor='rgba(255, 165, 0, 0.3)',
-        hoverinfo='all'
-    ))
-
-    fig_pizza.update_layout(
-        polar=dict(
-            bgcolor="white",
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100],
-                tickvals=[0, 25, 50, 75, 100],
-                ticktext=["0", "25", "50", "75", "100"],
-                gridcolor="lightgray",
-                gridwidth=1
-            )
-        ),
-        showlegend=True,
-        title=f"Perfil tipo Pizza: {jugadora_1} vs {nombre_2}",
-        margin=dict(t=50, b=50, l=50, r=50)
-    )
-
-    st.plotly_chart(fig_pizza, use_container_width=True)
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
