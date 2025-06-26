@@ -333,6 +333,8 @@ with tabs[5]:
         sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
         st.pyplot(fig)
 # TAB 7: Scouting Report
+from scipy.interpolate import make_interp_spline
+
 with tabs[6]:
     def generar_texto_scouting(fortalezas, debilidades, percentiles):
         texto = ""
@@ -388,52 +390,51 @@ with tabs[6]:
         color_2 = "#cc5555"
         linestyle_2 = "solid"
 
+    # Cerramos el círculo
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
 
     labels = vars_seleccionadas
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
+    angles = np.linspace(0, 2 * np.pi, len(labels) + 1, endpoint=True)
 
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor("#fafafa")
+    fig.patch.set_facecolor("#fefefe")
+    ax.set_facecolor("#f9f9f9")
 
-    # Fondo con círculos concéntricos más visibles y líneas radiales más sutiles
-    ax.set_facecolor("#ffffff")
-    ax.grid(color="#bbbbbb", linestyle="--", linewidth=0.7)
+    # Suavizamos los valores para crear curvas más orgánicas (splines)
+    angles_smooth = np.linspace(0, 2 * np.pi, 300)
+    
+    def smooth_curve(angles, values):
+        # make_interp_spline requiere valores únicos en x, por eso ajustamos ángulo y valores
+        spline = make_interp_spline(angles, values, bc_type='periodic')
+        return spline(angles_smooth)
+
+    smooth_vals_1 = smooth_curve(angles, valores_1)
+    smooth_vals_2 = smooth_curve(angles, valores_2)
+
+    # Área rellena con degradado simple usando alpha
+    ax.fill(angles_smooth, smooth_vals_1, color="#1f77b4", alpha=0.35)
+    ax.plot(angles_smooth, smooth_vals_1, color="#1f77b4", linewidth=3, label=jugadora_1, solid_capstyle='round')
+
+    ax.fill(angles_smooth, smooth_vals_2, color=color_2, alpha=0.25)
+    ax.plot(angles_smooth, smooth_vals_2, color=color_2, linewidth=2.5, linestyle=linestyle_2, label=nombre_2, solid_capstyle='round')
+
+    # Solo etiquetas en ángulos originales
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color="#222222")
+
+    # Ocultamos radios para limpieza
+    ax.set_yticklabels([])
+    ax.grid(False)
+    ax.spines['polar'].set_visible(False)
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
 
-    # Dibujar círculos concéntricos manualmente para mejor control visual
-    for r in range(20, 101, 20):
-        ax.plot(np.linspace(0, 2 * np.pi, 100), [r] * 100, color="#dddddd", linewidth=1)
-
-    # Plot radar player 1
-    ax.plot(angles, valores_1, linewidth=3, color="#1f77b4", label=jugadora_1, solid_capstyle='round')
-    ax.fill(angles, valores_1, color="#1f77b4", alpha=0.3)
-
-    # Plot radar player 2
-    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2, solid_capstyle='round')
-    ax.fill(angles, valores_2, color=color_2, alpha=0.2)
-
-    # Etiquetas en ángulo y fuente modernizada
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=11, fontweight='semibold', color="#444444")
-
-    # Eliminar etiquetas de radio para limpieza
-    ax.set_yticklabels([])
-
-    # Personalización extra
-    ax.spines['polar'].set_visible(False)
-    ax.grid(True)
-
-    # Título con fuente y color suaves
     ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=16, fontweight='bold', color="#222222", pad=20)
 
-    # Leyenda elegante en cuadro con sombra
     legend = ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15), fontsize=10, frameon=True)
-    legend.get_frame().set_edgecolor("#999999")
-    legend.get_frame().set_alpha(0.9)
+    legend.get_frame().set_edgecolor("#cccccc")
+    legend.get_frame().set_alpha(0.85)
     legend.get_frame().set_boxstyle('round,pad=0.4')
 
     st.pyplot(fig)
