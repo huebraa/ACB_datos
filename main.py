@@ -609,3 +609,4 @@ with tabs[7]:
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
 
+
