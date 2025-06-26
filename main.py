@@ -335,6 +335,7 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
+
     # Variables que usas para perfil (ejemplo)
     vars_perfil = vars_seleccionadas  # las que ya tienes definidas en tu código
 
@@ -414,6 +415,7 @@ with tabs[6]:
         color_2 = "#cc5c5c"
         linestyle_2 = "solid"
 
+    # Cerrar los polígonos
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
 
@@ -424,33 +426,41 @@ with tabs[6]:
     fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("white")
 
-    # Sombreado bloque rendimiento avanzado
-    start_idx = len(vars_perfil)
-    end_idx = len(vars_todas)
-    angles_rend = angles[start_idx:end_idx+1]  # +1 para cerrar el polígono
-    ax.fill_between(angles_rend, 0, 100, color="#f0e68c", alpha=0.2, zorder=0)  # bloque rendimiento (color suave)
+    # Sombreado bloque perfil (color azul claro)
+    perfil_angles = angles[:len(vars_perfil)+1]
+    ax.fill_between(perfil_angles, 0, 100, color="#d0e6f7", alpha=0.25, zorder=0)
+
+    # Sombreado bloque rendimiento avanzado (color amarillo claro)
+    rendimiento_angles = angles[len(vars_perfil):] + [angles[0]]
+    ax.fill_between(rendimiento_angles, 0, 100, color="#f9e3b4", alpha=0.25, zorder=0)
+
+    # Líneas guía para valores 25, 50, 75, 100 (dotted)
+    for val in [25, 50, 75, 100]:
+        ax.plot(np.linspace(0, 2*np.pi, 500), [val]*500, color="#bbb", linewidth=0.7, linestyle='dotted', zorder=1)
 
     # Plot jugador 1
-    ax.plot(angles, valores_1, linewidth=2.5, color="#006699", label=jugadora_1)
-    ax.fill(angles, valores_1, color="#006699", alpha=0.25)
+    ax.plot(angles, valores_1, linewidth=3, color="#006699", label=jugadora_1, zorder=3)
+    ax.fill(angles, valores_1, color="#006699", alpha=0.3, zorder=2)
 
     # Plot jugador 2
-    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2)
-    ax.fill(angles, valores_2, color=color_2, alpha=0.15)
+    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2, zorder=4)
+    ax.fill(angles, valores_2, color=color_2, alpha=0.15, zorder=3)
 
+    # Ajustar etiquetas y ticks
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
+    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color="#333333")
+    ax.set_yticks([])
+    ax.spines['polar'].set_visible(False)
+    ax.grid(False)
 
-    ax.set_yticklabels([])
-    ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
+    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=18, fontweight='bold', color="#222222", pad=20)
 
-    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=16, fontweight='bold', color="#222222", pad=20)
-
-    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.1), fontsize=10)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.1), fontsize=11)
 
     st.pyplot(fig)
 
-    st.markdown("_El bloque sombreado representa las variables de rendimiento avanzado._")
+    st.markdown("_El bloque azul representa las variables de perfil._")
+    st.markdown("_El bloque amarillo representa las variables de rendimiento avanzado._")
     st.markdown("_Valores normalizados (0-100)._")
 
     # Mostrar scouting visual con barras y columnas (solo perfil para claridad)
