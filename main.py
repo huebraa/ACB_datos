@@ -373,21 +373,19 @@ with tabs[6]:
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
         valores_2 = scaler.transform(df_pos[vars_seleccionadas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio {posicion}"
-        color_2 = "#999999"
+        color_2 = "#888888"
         linestyle_2 = "dashed"
-
     elif jugadora_2 == "Promedio de su cluster":
         cluster_id = fila_1['Cluster']
         df_clu = df_clustered[df_clustered['Cluster'] == cluster_id]
         valores_2 = scaler.transform(df_clu[vars_seleccionadas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio Cluster {cluster_id}"
-        color_2 = "#cc9900"
+        color_2 = "#aa7700"
         linestyle_2 = "dotted"
-
     else:
         valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
         nombre_2 = jugadora_2
-        color_2 = "#cc5c5c"
+        color_2 = "#cc5555"
         linestyle_2 = "solid"
 
     valores_1 += valores_1[:1]
@@ -397,21 +395,46 @@ with tabs[6]:
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor("white")
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor("#fafafa")
 
-    ax.plot(angles, valores_1, linewidth=2.5, color="#006699", label=jugadora_1)
-    ax.fill(angles, valores_1, color="#006699", alpha=0.25)
+    # Fondo con círculos concéntricos más visibles y líneas radiales más sutiles
+    ax.set_facecolor("#ffffff")
+    ax.grid(color="#bbbbbb", linestyle="--", linewidth=0.7)
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
 
-    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2)
-    ax.fill(angles, valores_2, color=color_2, alpha=0.15)
+    # Dibujar círculos concéntricos manualmente para mejor control visual
+    for r in range(20, 101, 20):
+        ax.plot(np.linspace(0, 2 * np.pi, 100), [r] * 100, color="#dddddd", linewidth=1)
 
+    # Plot radar player 1
+    ax.plot(angles, valores_1, linewidth=3, color="#1f77b4", label=jugadora_1, solid_capstyle='round')
+    ax.fill(angles, valores_1, color="#1f77b4", alpha=0.3)
+
+    # Plot radar player 2
+    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2, solid_capstyle='round')
+    ax.fill(angles, valores_2, color=color_2, alpha=0.2)
+
+    # Etiquetas en ángulo y fuente modernizada
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
+    ax.set_xticklabels(labels, fontsize=11, fontweight='semibold', color="#444444")
+
+    # Eliminar etiquetas de radio para limpieza
     ax.set_yticklabels([])
-    ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
-    ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=14, fontweight='bold', color="#222222", pad=15)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
+
+    # Personalización extra
+    ax.spines['polar'].set_visible(False)
+    ax.grid(True)
+
+    # Título con fuente y color suaves
+    ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=16, fontweight='bold', color="#222222", pad=20)
+
+    # Leyenda elegante en cuadro con sombra
+    legend = ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15), fontsize=10, frameon=True)
+    legend.get_frame().set_edgecolor("#999999")
+    legend.get_frame().set_alpha(0.9)
+    legend.get_frame().set_boxstyle('round,pad=0.4')
 
     st.pyplot(fig)
     st.markdown("_Valores normalizados (0-100)._")
@@ -422,3 +445,4 @@ with tabs[6]:
 
     texto = f"**Informe de {jugadora_1} ({posicion})**\n\n" + generar_texto_scouting(fortalezas, debilidades, percentiles)
     st.markdown(texto)
+
