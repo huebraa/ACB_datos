@@ -403,7 +403,6 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
-
     vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
@@ -451,31 +450,78 @@ with tabs[6]:
     cluster = fila_1['Cluster']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    scaler = MinMaxScaler((0, 100))
-    normalizados = scaler.fit_transform(df_clustered[vars_todas])
-    df_norm = pd.DataFrame(normalizados, columns=vars_todas)
-    df_norm['Player'] = df_clustered['Player'].values
+    # Importar PyPizza y matplotlib aquí
+    from pypizza import PyPizza
+    import matplotlib.pyplot as plt
+    from scipy.stats import percentileofscore
+    from matplotlib.patches import Patch
 
-    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten().tolist()
+    def pizza_chart_pypizza(fila_1, df_posicion, vars_seleccionadas):
+        # Calcular percentiles
+        percentiles = [percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas]
 
-    if jugadora_2 == "Promedio de su posición":
-        df_pos = df_clustered[df_clustered['Pos'] == posicion]
-        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio {posicion}"
-        color_2 = "gray"
-        dash_2 = 'dash'
-    elif jugadora_2 == "Promedio de su cluster":
-        df_clu = df_clustered[df_clustered['Cluster'] == cluster]
-        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio Cluster {cluster}"
-        color_2 = "orange"
-        dash_2 = 'dot'
-    else:
-        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
-        nombre_2 = jugadora_2
-        color_2 = "firebrick"
-        dash_2 = 'solid'
+        # Categorizar colores y leyendas
+        colores = []
+        for pct in percentiles:
+            if pct > 90:
+                colores.append('#007AFF')  # Azul Elite
+            elif pct > 65:
+                colores.append('#00C851')  # Verde
+            elif pct > 35:
+                colores.append('#FFBB33')  # Amarillo
+            else:
+                colores.append('#FF4444')  # Rojo
 
+        baker = PyPizza(
+            params=vars_seleccionadas,
+            background_color="#f9f9f9",
+            straight_line_color="#000000",
+            straight_line_lw=1,
+            last_circle_lw=1,
+            other_circle_lw=0,
+            inner_circle_size=20,
+        )
+
+        # PyPizza escala valores 0-10, escalamos percentiles
+        valores = [(v / 100) * 10 for v in percentiles]
+
+        fig, ax = baker.make_pizza(
+            valores,
+            figsize=(8, 8),
+            color_blank_space="same",
+            slice_colors=colores,
+            value_colors=colores,
+            value_bck_colors="#f9f9f9",
+            blank_alpha=0.2,
+            param_location=110,
+            kwargs_slices=dict(edgecolor="#000000", zorder=2, linewidth=1),
+            kwargs_params=dict(color="#222222", fontsize=12),
+            kwargs_values=dict(fontsize=11, color="#222222", zorder=3,
+                               bbox=dict(edgecolor="#222222", facecolor="#f9f9f9", boxstyle="round,pad=0.2")),
+        )
+
+        # Añadir valores absolutos al centro de cada barra
+        for i, (x, y) in enumerate(zip(baker.x_pos, baker.y_pos)):
+            ax.text(x, y, f"{int(fila_1[vars_seleccionadas[i]])}", ha='center', va='center', fontsize=10, fontweight='bold')
+
+        # Leyenda personalizada
+        legend_elements = [
+            Patch(facecolor='#007AFF', edgecolor='black', label='Elite (>90)'),
+            Patch(facecolor='#00C851', edgecolor='black', label='Por encima del promedio (66-90)'),
+            Patch(facecolor='#FFBB33', edgecolor='black', label='Promedio (36-65)'),
+            Patch(facecolor='#FF4444', edgecolor='black', label='Bajo promedio (<35)'),
+        ]
+        ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.3, 1))
+
+        plt.title(f"Perfil Radial - {fila_1['Player']}", fontsize=16, fontweight='bold')
+        plt.tight_layout()
+        st.pyplot(fig)
+
+    # Mostrar el gráfico pizza con PyPizza para las variables de perfil
+    pizza_chart_pypizza(fila_1, df_posicion, vars_perfil)
+
+    # Si quieres, puedes mantener el radar comentado para referencia:
+    """
     # Cerrar el radar
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
@@ -558,10 +604,9 @@ with tabs[6]:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    """
 
-    st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
-    st.markdown("_Valores normalizados de 0 a 100._")
-
+    st.markdown("_Valores normalizados de 0 a 100 para el radar tradicional (comentado)._")
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
 
