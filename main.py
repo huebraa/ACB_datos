@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -219,6 +218,7 @@ def describir_cluster_por_medias(row, umbral=0.25):
         etiquetas.append("Perfil Mixto")
 
     return ", ".join(etiquetas)
+
 
 
 
