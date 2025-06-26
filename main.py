@@ -274,7 +274,13 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
-    resumen['Etiqueta'] = [describir_cluster_mejorado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
+    resultados = [
+    etiquetar_y_prototipar_cluster(df_clustered, cluster_id, vars_seleccionadas)
+    for cluster_id in resumen.index]
+        resumen['Etiqueta'] = [r['etiquetas'] for r in resultados]
+        resumen['Arquetipo'] = [r['arquetipo_principal'] for r in resultados]
+        resumen['Prototipos'] = [", ".join(r['prototipos']) for r in resultados]
+
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
     df_clustered['PerfilJugador'] = df_clustered['Jugador'] + " — " + df_clustered['ClusterEtiqueta']
 
