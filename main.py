@@ -182,11 +182,13 @@ def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
 
-    # Calcular z-scores del centroide respecto global
     z_scores = (centroid - global_mean) / global_std
-
-    # Percentiles para algunas variables específicas
     percentiles = {var: percentileofscore(df_total[var].dropna(), centroid[var]) for var in ['3PA', 'TOV%'] if var in df_total.columns}
+
+    print(f"\nCluster {cluster_id} - Z-scores:")
+    print(z_scores)
+    print("Percentiles:")
+    print(percentiles)
 
     etiquetas = []
 
