@@ -13,6 +13,7 @@ import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
 
+
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
 # --- Función para cargar datos ---
@@ -335,23 +336,21 @@ with tabs[5]:
         st.pyplot(fig)
 # TAB 7: Scouting Report
 with tabs[6]:
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import matplotlib.patheffects as mpe
-    from sklearn.preprocessing import MinMaxScaler
-    from scipy.stats import percentileofscore
 
-    vars_perfil = vars_seleccionadas  # variables perfil (las que ya usas)
+
+    vars_perfil = vars_seleccionadas
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
+
+    # Normalizar variables juntas
     vars_todas = vars_perfil + vars_rendimiento
 
+    # Función scouting (igual que antes)
     def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
         percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
         fortalezas = [(var, int(pct)) for var, pct in percentiles.items() if pct >= 75]
         debilidades = [(var, int(pct)) for var, pct in percentiles.items() if pct <= 25]
 
         st.markdown("### 🏀 Informe de Fortalezas y Debilidades")
-
         col1, col2 = st.columns(2)
 
         with col1:
@@ -362,7 +361,6 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("✅ Perfil equilibrado sin áreas sobresalientes.")
-
         with col2:
             st.markdown("#### 🔴 Debilidades")
             if debilidades:
@@ -371,16 +369,6 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("🟢 Sin áreas críticas de mejora detectadas.")
-
-    def label_on_angle(ax, angle, text, radius=1.1):
-        angle = angle % (2 * np.pi)
-        ha = "center"
-        if 0 < angle < np.pi:
-            ha = "left"
-        elif np.pi < angle < 2*np.pi:
-            ha = "right"
-        ax.text(angle, radius, text, fontsize=13, fontweight='bold', color="#f39c12", ha=ha, va='center', alpha=0.9,
-                path_effects=[mpe.withStroke(linewidth=4, foreground="white")])
 
     st.subheader("🔍 Scouting individual y comparativo")
 
@@ -399,72 +387,68 @@ with tabs[6]:
     cluster = fila_1['Cluster']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    scaler = MinMaxScaler((0, 100))
+    scaler = MinMaxScaler((0, 1))
     normalizados = scaler.fit_transform(df_clustered[vars_todas])
     df_norm = pd.DataFrame(normalizados, columns=vars_todas)
     df_norm['Player'] = df_clustered['Player'].values
 
-    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten().tolist()
-
+    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten()
     if jugadora_2 == "Promedio de su posición":
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
-        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
+        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0)
         nombre_2 = f"Promedio {posicion}"
         color_2 = "#999999"
-        linestyle_2 = "dashed"
     elif jugadora_2 == "Promedio de su cluster":
         df_clu = df_clustered[df_clustered['Cluster'] == cluster]
-        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
+        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0)
         nombre_2 = f"Promedio Cluster {cluster}"
         color_2 = "#cc9900"
-        linestyle_2 = "dotted"
     else:
-        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
+        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten()
         nombre_2 = jugadora_2
         color_2 = "#cc5c5c"
-        linestyle_2 = "solid"
 
-    valores_1 += valores_1[:1]
-    valores_2 += valores_2[:1]
+    n_vars_perfil = len(vars_perfil)
+    n_vars_rend = len(vars_rendimiento)
 
-    labels = vars_todas
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
+    fig, ax = plt.subplots(figsize=(9,9), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor("#fff")
 
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor("#fafafa")
+    # Ángulos para barras
+    angles_perfil = np.linspace(0, 2*np.pi, n_vars_perfil, endpoint=False)
+    angles_rend = np.linspace(0, 2*np.pi, n_vars_rend, endpoint=False)
 
-    # Sombreado bloques perfil y rendimiento
-    ax.fill_between(angles[:len(vars_perfil)+1], 0, 100, color="#0a74da", alpha=0.15, zorder=0)
-    ax.fill_between(angles[len(vars_perfil):], 0, 100, color="#f39c12", alpha=0.15, zorder=0)
+    width = 2*np.pi / max(n_vars_perfil, n_vars_rend) * 0.8  # ancho barra
 
-    # Líneas de relleno
-    ax.plot(angles, valores_1, color="#0a74da", linewidth=3, linestyle='solid', label=jugadora_1)
-    ax.fill(angles, valores_1, color="#0a74da", alpha=0.35)
+    # Barras anillo interior (perfil)
+    bars1 = ax.bar(angles_perfil, valores_1[:n_vars_perfil], width=width, bottom=0.15, color="#1f77b4", alpha=0.8, edgecolor='k', label=jugadora_1)
+    bars2 = ax.bar(angles_perfil, valores_2[:n_vars_perfil], width=width, bottom=0.15, color="#ff7f0e", alpha=0.4, edgecolor='k', label=nombre_2)
 
-    ax.plot(angles, valores_2, color=color_2, linewidth=3, linestyle=linestyle_2, label=nombre_2)
-    ax.fill(angles, valores_2, color=color_2, alpha=0.2)
+    # Barras anillo exterior (rendimiento)
+    bars3 = ax.bar(angles_rend, valores_1[n_vars_perfil:], width=width, bottom=0.6, color="#2ca02c", alpha=0.8, edgecolor='k')
+    bars4 = ax.bar(angles_rend, valores_2[n_vars_perfil:], width=width, bottom=0.6, color="#d62728", alpha=0.4, edgecolor='k')
 
-    # Personalizar ticks y etiquetas
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels([])  # quitamos etiquetas estándar para personalizar con función
+    # Etiquetas perfil fuera anillo
+    for angle, label in zip(angles_perfil, vars_perfil):
+        ax.text(angle, 0.15 - 0.1, label, ha='center', va='center', fontsize=12, fontweight='bold', color="#1f77b4", rotation=np.degrees(angle)-90, rotation_mode='anchor')
 
-    # Añadir etiquetas en ángulo con estilo moderno
-    for angle, label in zip(angles[:-1], labels):
-        label_on_angle(ax, angle, label)
+    # Etiquetas rendimiento fuera anillo exterior
+    for angle, label in zip(angles_rend, vars_rendimiento):
+        ax.text(angle, 1.2, label, ha='center', va='center', fontsize=12, fontweight='bold', color="#2ca02c", rotation=np.degrees(angle)-90, rotation_mode='anchor')
 
+    ax.set_ylim(0,1.1)
     ax.set_yticklabels([])
-    ax.grid(color="#bfbfbf", linestyle="dashed", linewidth=0.8)
+    ax.set_xticklabels([])
+    ax.grid(False)
     ax.spines['polar'].set_visible(False)
 
-    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=20, fontweight='bold', color="#222222", pad=30)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15), fontsize=12)
 
-    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12, frameon=False)
+    ax.set_title(f"Radar de barras radiales - {jugadora_1} vs {nombre_2}", fontsize=18, fontweight='bold', color="#333")
 
     st.pyplot(fig)
 
-    st.markdown("_El bloque azul representa variables de perfil; el bloque amarillo variables de rendimiento avanzado._")
-    st.markdown("_Valores normalizados (0-100)._")
+    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
