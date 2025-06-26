@@ -172,50 +172,50 @@ df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
 
-
 def describir_cluster_avanzado(cluster_media):
     etiquetas = []
 
-    # Tirador de 3
-    if cluster_media['3PA'] >= 3 and cluster_media['3P%'] >= 0.33:
+    # Tirador (volumen y acierto)
+    if cluster_media['3PA'] >= 2.5 and cluster_media['3P%'] >= 0.32:
         etiquetas.append("Tirador")
     elif cluster_media['3P%'] >= 0.35 and cluster_media['3PA'] < 2:
         etiquetas.append("Tirador Selectivo")
 
-    # Slasher / Anotador Interior
-    if cluster_media['FG%'] if 'FG%' in cluster_media else 0 > 0.5 and cluster_media['FT/FGA'] > 0.4:
-        etiquetas.append("Slasher")
-
-    # Playmaker
-    if cluster_media['AST%'] >= 20 and cluster_media['Ast/TO'] >= 2:
+    # Facilitador / Playmaker
+    if cluster_media['AST%'] >= 18 and cluster_media['Ast/TO'] >= 1.8:
         etiquetas.append("Playmaker")
     elif cluster_media['AST%'] >= 10:
         etiquetas.append("Facilitador Secundario")
 
-    # Big man tradicional / Interior Defensor
-    if cluster_media['ORB%'] > 10 and cluster_media['BLK%'] > 3:
-        etiquetas.append("Interior Defensor")
-
-    # Reboteador puro
-    if cluster_media['TRB%'] > 15 and cluster_media['USG%'] < 17:
-        etiquetas.append("Reboteador")
-
-    # 3&D
-    if cluster_media['3P%'] >= 0.33 and cluster_media['STL%'] >= 2:
-        etiquetas.append("3&D")
+    # Interior Defensivo
+    if cluster_media['ORB%'] >= 10 and cluster_media['BLK%'] >= 2.5:
+        etiquetas.append("Interior Defensivo")
 
     # Defensor versátil
-    if cluster_media['STL%'] >= 2 and cluster_media['BLK%'] >= 2:
+    if cluster_media['STL%'] >= 1.5 and cluster_media['BLK%'] >= 1.5:
         etiquetas.append("Defensor Versátil")
 
+    # 3&D
+    if cluster_media['3P%'] >= 0.33 and cluster_media['STL%'] >= 1.5:
+        etiquetas.append("3&D")
+
     # Eficiente
-    if cluster_media['FT/FGA'] > 0.4 and cluster_media['TOV%'] < 12:
+    if cluster_media['FT/FGA'] >= 0.45 and cluster_media['TOV%'] < 15:
         etiquetas.append("Eficiente")
+
+    # Reboteador
+    if cluster_media['TRB%'] >= 15 and cluster_media['USG%'] < 18:
+        etiquetas.append("Reboteador")
+
+    # Anotador / Slasher (uso y FT rate)
+    if cluster_media['USG%'] >= 22 and cluster_media['FT/FGA'] >= 0.45:
+        etiquetas.append("Slasher")
 
     if not etiquetas:
         etiquetas.append("Perfil Mixto")
 
     return ", ".join(etiquetas)
+
 
 
 # --- Visualizaciones y tabs ---
