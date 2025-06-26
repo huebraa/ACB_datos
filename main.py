@@ -232,6 +232,7 @@ def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=
 
 
 
+
 # --- Visualizaciones y tabs ---
 tabs = st.tabs([
     "📊 Clusters",
