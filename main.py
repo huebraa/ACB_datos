@@ -339,13 +339,8 @@ with tabs[5]:
 with tabs[6]:
 
 
-    # Variables que usas para perfil (ejemplo)
-    vars_perfil = vars_seleccionadas  # las que ya tienes definidas en tu código
-
-    # Variables de rendimiento avanzado a añadir
+    vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
-
-    # Unión de variables para el radar
     vars_todas = vars_perfil + vars_rendimiento
 
     def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
@@ -354,7 +349,6 @@ with tabs[6]:
         debilidades = [(var, int(pct)) for var, pct in percentiles.items() if pct <= 25]
 
         st.markdown("### 🏀 Informe de Fortalezas y Debilidades")
-
         col1, col2 = st.columns(2)
 
         with col1:
@@ -392,7 +386,6 @@ with tabs[6]:
     cluster = fila_1['Cluster']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    # Normalizar todas las variables juntas (perfil + rendimiento)
     scaler = MinMaxScaler((0, 100))
     normalizados = scaler.fit_transform(df_clustered[vars_todas])
     df_norm = pd.DataFrame(normalizados, columns=vars_todas)
@@ -404,68 +397,105 @@ with tabs[6]:
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
         valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio {posicion}"
-        color_2 = "#999999"
-        linestyle_2 = "dashed"
+        color_2 = "gray"
+        dash_2 = 'dash'
     elif jugadora_2 == "Promedio de su cluster":
         df_clu = df_clustered[df_clustered['Cluster'] == cluster]
         valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio Cluster {cluster}"
-        color_2 = "#cc9900"
-        linestyle_2 = "dotted"
+        color_2 = "orange"
+        dash_2 = 'dot'
     else:
         valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
         nombre_2 = jugadora_2
-        color_2 = "#cc5c5c"
-        linestyle_2 = "solid"
+        color_2 = "firebrick"
+        dash_2 = 'solid'
 
-    # Cerrar los polígonos
+    # Cerrar el radar
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
+    labels = vars_todas + vars_todas[:1]
 
-    labels = vars_todas
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
+    # Crear radar con Plotly
+    fig = go.Figure()
 
-    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor("white")
+    # Bloque perfil
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1[:len(vars_perfil)+1],
+        theta=labels[:len(vars_perfil)+1],
+        fill='toself',
+        name=jugadora_1 + " - Perfil",
+        line=dict(color='#006699', width=3),
+        fillcolor='rgba(0,102,153,0.3)',
+        hoverinfo='all'
+    ))
 
-    # Sombreado bloque perfil (color azul claro)
-    perfil_angles = angles[:len(vars_perfil)+1]
-    ax.fill_between(perfil_angles, 0, 100, color="#d0e6f7", alpha=0.25, zorder=0)
+    # Bloque rendimiento
+    fig.add_trace(go.Scatterpolar(
+        r=valores_1[len(vars_perfil):],
+        theta=labels[len(vars_perfil):],
+        fill='toself',
+        name=jugadora_1 + " - Rendimiento",
+        line=dict(color='#ffa500', width=3),
+        fillcolor='rgba(255,165,0,0.3)',
+        hoverinfo='all'
+    ))
 
-    # Sombreado bloque rendimiento avanzado (color amarillo claro)
-    rendimiento_angles = angles[len(vars_perfil):] + [angles[0]]
-    ax.fill_between(rendimiento_angles, 0, 100, color="#f9e3b4", alpha=0.25, zorder=0)
+    # Comparativa jugador 2 - perfil
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2[:len(vars_perfil)+1],
+        theta=labels[:len(vars_perfil)+1],
+        fill='toself',
+        name=nombre_2 + " - Perfil",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(128,128,128,0.2)' if dash_2 == 'dash' else 'rgba(255,165,0,0.15)',
+        hoverinfo='all'
+    ))
 
-    # Líneas guía para valores 25, 50, 75, 100 (dotted)
-    for val in [25, 50, 75, 100]:
-        ax.plot(np.linspace(0, 2*np.pi, 500), [val]*500, color="#bbb", linewidth=0.7, linestyle='dotted', zorder=1)
+    # Comparativa jugador 2 - rendimiento
+    fig.add_trace(go.Scatterpolar(
+        r=valores_2[len(vars_perfil):],
+        theta=labels[len(vars_perfil):],
+        fill='toself',
+        name=nombre_2 + " - Rendimiento",
+        line=dict(color=color_2, width=2, dash=dash_2),
+        fillcolor='rgba(255,165,0,0.15)',
+        hoverinfo='all'
+    ))
 
-    # Plot jugador 1
-    ax.plot(angles, valores_1, linewidth=3, color="#006699", label=jugadora_1, zorder=3)
-    ax.fill(angles, valores_1, color="#006699", alpha=0.3, zorder=2)
+    fig.update_layout(
+        polar=dict(
+            bgcolor="#f9f9f9",
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                tickvals=[0, 25, 50, 75, 100],
+                ticktext=["0", "25", "50", "75", "100"],
+                gridcolor="lightgray",
+                gridwidth=1
+            ),
+            angularaxis=dict(
+                tickfont=dict(size=10, color="black", family="Arial Black"),
+            )
+        ),
+        legend=dict(
+            title="Leyenda",
+            font=dict(size=12),
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+            x=1.1,
+            y=1
+        ),
+        margin=dict(t=50, b=50, l=50, r=150),
+        title=f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento",
+        title_font_size=18
+    )
 
-    # Plot jugador 2
-    ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2, zorder=4)
-    ax.fill(angles, valores_2, color=color_2, alpha=0.15, zorder=3)
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Ajustar etiquetas y ticks
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color="#333333")
-    ax.set_yticks([])
-    ax.spines['polar'].set_visible(False)
-    ax.grid(False)
+    st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
+    st.markdown("_Valores normalizados de 0 a 100._")
 
-    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=18, fontweight='bold', color="#222222", pad=20)
-
-    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.1), fontsize=11)
-
-    st.pyplot(fig)
-
-    st.markdown("_El bloque azul representa las variables de perfil._")
-    st.markdown("_El bloque amarillo representa las variables de rendimiento avanzado._")
-    st.markdown("_Valores normalizados (0-100)._")
-
-    # Mostrar scouting visual con barras y columnas (solo perfil para claridad)
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
