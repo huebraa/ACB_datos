@@ -175,63 +175,58 @@ df_clustered['PCA2'] = X_pca[:, 1]
 
 # --- Función para describir clusters ---
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=0.5):
-    cluster_data = df_total[df_total['Cluster'] == cluster_id]
-    if cluster_data.empty:
-        return "Cluster vacío"
 
-    global_mean = df_total[vars_seleccionadas].mean()
-    global_std = df_total[vars_seleccionadas].std()
-    centroid = cluster_data[vars_seleccionadas].mean()
+    """
+    Clasifica jugadores en perfiles según sus estadísticas.
 
-    z_scores = (centroid - global_mean) / global_std
-    etiquetas = []
+    Parámetros:
+    df: pd.DataFrame con las columnas necesarias
 
-    # Ahora aplicar la lógica de perfiles con z_scores y algunas métricas crudas del centroid:
+    Retorna:
+    df con columna 'Perfil' asignada (string con uno o varios perfiles)
+    """
 
-    # Anotador principal
-    if (centroid.get('PPG', 0) > 18) and (centroid.get('USG%', 0) > 25) and (centroid.get('TS%', 0) > 0.55) and (centroid.get('ORtg', 0) > 110):
-        etiquetas.append('Anotador principal')
+    perfiles = []
 
-    # Tirador especialista
-    if (centroid.get('3P%', 0) > 0.38) and (centroid.get('3PA', 0) > 2) and (15 <= centroid.get('USG%', 0) <= 22) and (centroid.get('eFG%', 0) > 0.53):
-        etiquetas.append('Tirador especialista')
+    for i, row in df.iterrows():
+        etiquetas = []
 
-    # Facilitador / Playmaker
-    if (centroid.get('APG', 0) > 5) and (centroid.get('AST%', 0) > 25) and (centroid.get('AST/TO', 0) > 2) and (18 <= centroid.get('USG%', 0) <= 25) and (centroid.get('TOV%', 0) < 15):
-        etiquetas.append('Facilitador')
+        # Anotador principal
+        if (row['PPG'] > 18) and (row['USG%'] > 25) and (row['TS%'] > 0.55) and (row['ORtg'] > 110):
+            etiquetas.append('Anotador principal')
 
-    # Defensor especializado
-    if (centroid.get('DRtg', 200) < 100) and (centroid.get('STL%', 0) > 2) and (centroid.get('BLK%', 0) > 2) and (centroid.get('DWS', 0) > 0.1):
-        etiquetas.append('Defensor especializado')
+        # Tirador especialista
+        if (row['3P%'] > 0.38) and (row['3PA'] > 2) and (15 <= row['USG%'] <= 22) and (row['eFG%'] > 0.53):
+            etiquetas.append('Tirador especialista')
 
-    # Rebotador / Jugador físico
-    if (centroid.get('TRB%', 0) > 15) and (centroid.get('RPG', 0) > 8):
-        etiquetas.append('Rebotador')
+        # Facilitador / Playmaker
+        if (row['APG'] > 5) and (row['AST%'] > 25) and (row['AST/TO'] > 2) and (18 <= row['USG%'] <= 25) and (row['TOV%'] < 15):
+            etiquetas.append('Facilitador')
 
-    # Jugador eficiente de rol
-    if (centroid.get('USG%', 100) < 18) and (centroid.get('TS%', 0) > 0.58) and (centroid.get('TOV%', 100) < 12) and (centroid.get('eFG%', 0) > 0.55):
-        etiquetas.append('Jugador eficiente de rol')
+        # Defensor especializado
+        if (row['DRtg'] < 100) and (row['STL%'] > 2) and (row['BLK%'] > 2) and (row['DWS'] > 0.1):
+            etiquetas.append('Defensor especializado')
 
-    # Jugador all-around
-    if (10 <= centroid.get('PPG', 0) <= 15) and (3 <= centroid.get('APG', 0) <= 5) and (5 <= centroid.get('RPG', 0) <= 7) and (centroid.get('TS%', 0) > 0.52) and (18 <= centroid.get('USG%', 0) <= 23):
-        etiquetas.append('Jugador all-around')
+        # Rebotador / Jugador físico
+        if (row['TRB%'] > 15) and (row['RPG'] > 8):
+            etiquetas.append('Rebotador')
 
-    # Etiquetas basadas en z_scores para aspectos específicos del cluster
-    if z_scores.get('AST%', 0) > umbral:
-        etiquetas.append("Playmaker (Z)")
-    if z_scores.get('3P%', 0) > umbral:
-        etiquetas.append("Tirador (Z)")
-    if z_scores.get('BLK%', 0) > umbral or z_scores.get('STL%', 0) > umbral:
-        etiquetas.append("Defensor (Z)")
-    if z_scores.get('3P%', 0) < -umbral:
-        etiquetas.append("Interior (Z)")
-    if z_scores.get('REB%', 0) > umbral:
-        etiquetas.append("Rebotador (Z)")
+        # Jugador eficiente de rol
+        if (row['USG%'] < 18) and (row['TS%'] > 0.58) and (row['TOV%'] < 12) and (row['eFG%'] > 0.55):
+            etiquetas.append('Jugador eficiente de rol')
 
-    if not etiquetas:
-        return "Mixto"
+        # Jugador all-around
+        if (10 <= row['PPG'] <= 15) and (3 <= row['APG'] <= 5) and (5 <= row['RPG'] <= 7) and (row['TS%'] > 0.52) and (18 <= row['USG%'] <= 23):
+            etiquetas.append('Jugador all-around')
 
-    return ", ".join(etiquetas)
+        if not etiquetas:
+            etiquetas.append('Perfil indefinido')
+
+        perfiles.append(', '.join(etiquetas))
+
+    df['Perfil'] = perfiles
+    return df
+
 
 
 
