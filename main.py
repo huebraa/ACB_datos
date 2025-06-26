@@ -402,156 +402,44 @@ with tabs[5]:
         
 # TAB 7: Scouting Report
 with tabs[6]:
-
-    vars_perfil = vars_seleccionadas  # Definidas anteriormente en tu código
-    vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
-    vars_todas = vars_perfil + vars_rendimiento
-
-    def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
-        percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
-        fortalezas = [(var, int(pct)) for var, pct in percentiles.items() if pct >= 75]
-        debilidades = [(var, int(pct)) for var, pct in percentiles.items() if pct <= 25]
-
-        st.markdown("### 🏀 Informe de Fortalezas y Debilidades")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("#### 🟢 Fortalezas")
-            if fortalezas:
-                for var, pct in fortalezas:
-                    st.markdown(f"**{var}** — Percentil {pct}")
-                    st.progress(pct / 100)
-            else:
-                st.markdown("✅ Perfil equilibrado sin áreas sobresalientes.")
-
-        with col2:
-            st.markdown("#### 🔴 Debilidades")
-            if debilidades:
-                for var, pct in debilidades:
-                    st.markdown(f"**{var}** — Percentil {pct}")
-                    st.progress(pct / 100)
-            else:
-                st.markdown("🟢 Sin áreas críticas de mejora detectadas.")
+    # Preparación de datos
+    vars_perfil = vars_seleccionadas
+    vars_rend = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
+    vars_all = vars_perfil + vars_rend
 
     st.subheader("🔍 Scouting individual y comparativo")
+    p1, p2 = st.columns(2)
+    with p1:
+        j1 = st.selectbox("Jugador principal", df_clustered['Player'].unique(), key="p1")
+    with p2:
+        j2 = st.selectbox("Comparar con", ["–"] + ["Posición", "Cluster"] + list(df_clustered['Player']), key="p2")
+    row1 = df_clustered[df_clustered['Player']==j1].iloc[0]
+    pos = row1['Pos']; clu = row1['Cluster']; df_pos = df_clustered[df_clustered['Pos']==pos]
+    scaler = MinMaxScaler((0,100))
+    norm = scaler.fit_transform(df_clustered[vars_all])
+    dfn = pd.DataFrame(norm, columns=vars_all); dfn['Player']=df_clustered['Player']
 
-    col1, col2 = st.columns(2)
-    with col1:
-        jugadora_1 = st.selectbox("Selecciona una jugadora principal", df_clustered['Player'].unique(), key="scouting_1")
-    with col2:
-        jugadora_2 = st.selectbox(
-            "Comparar con otra jugadora (opcional)",
-            ["Promedio de su posición", "Promedio de su cluster"] + list(df_clustered['Player'].unique()),
-            key="scouting_2"
-        )
-
-    fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
-    posicion = fila_1['Pos']
-    cluster = fila_1['Cluster']
-    df_posicion = df_clustered[df_clustered['Pos'] == posicion]
-
-    scaler = MinMaxScaler((0, 100))
-    normalizados = scaler.fit_transform(df_clustered[vars_todas])
-    df_norm = pd.DataFrame(normalizados, columns=vars_todas)
-    df_norm['Player'] = df_clustered['Player'].values
-
-    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten().tolist()
-
-    if jugadora_2 == "Promedio de su posición":
-        df_pos = df_clustered[df_clustered['Pos'] == posicion]
-        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio {posicion}"
-        color_2 = "gray"
-        dash_2 = 'dash'
-    elif jugadora_2 == "Promedio de su cluster":
-        df_clu = df_clustered[df_clustered['Cluster'] == cluster]
-        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio Cluster {cluster}"
-        color_2 = "orange"
-        dash_2 = 'dot'
+    v1 = dfn[dfn['Player']==j1][vars_all].iloc[0].tolist()
+    if j2=="Posición":
+        v2 = scaler.transform(df_pos[vars_all]).mean(axis=0).tolist(); lbl="Promedio Pos"; c2='gray'; d2='dash'
+    elif j2=="Cluster":
+        v2 = scaler.transform(df_clustered[df_clustered['Cluster']==clu][vars_all]).mean(axis=0).tolist(); lbl="Prom Clu"; c2='orange'; d2='dot'
+    elif j2!="-":
+        v2 = dfn[dfn['Player']==j2][vars_all].iloc[0].tolist(); lbl=j2; c2='red'; d2='solid'
     else:
-        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
-        nombre_2 = jugadora_2
-        color_2 = "firebrick"
-        dash_2 = 'solid'
+        v2 = v1; lbl=j1; c2='blue'; d2='solid'
 
-    # Preparamos etiquetas y valores para radar
-    labels_perfil = vars_perfil + [vars_perfil[0]]
-    labels_rend = vars_rendimiento + [vars_rendimiento[0]]
-
-    valores_1_perfil = valores_1[:len(vars_perfil)] + [valores_1[0]]
-    valores_1_rend = valores_1[len(vars_perfil):] + [valores_1[len(vars_perfil)]]
-
-    valores_2_perfil = valores_2[:len(vars_perfil)] + [valores_2[0]]
-    valores_2_rend = valores_2[len(vars_perfil):] + [valores_2[len(vars_perfil)]]
+    r1 = v1 + [v1[0]]
+    r2 = v2 + [v2[0]]
+    theta = vars_all + [vars_all[0]]
 
     fig = go.Figure()
-
-    # Perfil jugadora 1
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1_perfil,
-        theta=labels_perfil,
-        fill='toself',
-        name=f"{jugadora_1} - Perfil",
-        line=dict(color='#1f77b4', width=3),
-        fillcolor='rgba(31, 119, 180, 0.2)'
-    ))
-
-    # Rendimiento jugadora 1
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1_rend,
-        theta=labels_rend,
-        fill='toself',
-        name=f"{jugadora_1} - Rendimiento",
-        line=dict(color='#ff7f0e', width=3),
-        fillcolor='rgba(255, 127, 14, 0.2)'
-    ))
-
-    # Perfil comparado
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2_perfil,
-        theta=labels_perfil,
-        fill='toself',
-        name=f"{nombre_2} - Perfil",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(128,128,128,0.15)' if dash_2 != 'solid' else 'rgba(255,165,0,0.15)'
-    ))
-
-    # Rendimiento comparado
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2_rend,
-        theta=labels_rend,
-        fill='toself',
-        name=f"{nombre_2} - Rendimiento",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(255,165,0,0.1)'
-    ))
-
-    fig.update_layout(
-        title=dict(text=f"{jugadora_1} vs {nombre_2}", x=0.5, font=dict(size=20)),
-        polar=dict(
-            bgcolor="#ffffff",
-            radialaxis=dict(visible=True, range=[0, 100], tickvals=[0, 25, 50, 75, 100], tickfont=dict(size=10)),
-            angularaxis=dict(tickfont=dict(size=11))
-        ),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.3,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=11)
-        ),
-        margin=dict(l=30, r=30, t=60, b=60),
-        height=600
-    )
+    fig.add_trace(go.Scatterpolar(r=r1, theta=theta, fill='toself', name=j1, line=dict(color='blue')))
+    if j2!="-":
+        fig.add_trace(go.Scatterpolar(r=r2, theta=theta, fill='toself', name=lbl, line=dict(color=c2, dash=d2)))
+    fig.update_layout(polar=dict(radialaxis=dict(range=[0,100])), showlegend=True, height=500)
 
     st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
-    st.markdown("_Valores normalizados de 0 a 100._")
-
-    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
 
 with tabs[7]:
