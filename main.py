@@ -1,3 +1,5 @@
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -171,7 +173,8 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
+# --- Función para describir clusters ---
+def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
         return "Cluster vacío"
@@ -180,55 +183,27 @@ def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
 
-    z_scores = ((centroid - global_mean) / global_std).sort_values(ascending=False)
+    z_scores = (centroid - global_mean) / global_std
 
     etiquetas = []
 
-    # Etiquetas ofensivas
     if z_scores.get('AST%', 0) > umbral:
-        etiquetas.append(("Playmaker", z_scores['AST%']))
-    if z_scores.get('USG%', 0) > umbral and z_scores.get('FG%', 0) > 0:
-        etiquetas.append(("Finalizador", z_scores['USG%']))
-    if z_scores.get('3P%', 0) > umbral or z_scores.get('3PA', 0) > umbral:
-        etiquetas.append(("Tirador", max(z_scores.get('3P%', 0), z_scores.get('3PA', 0))))
-    if z_scores.get('FT/FGA', 0) > umbral and z_scores.get('USG%', 0) > 0:
-        etiquetas.append(("Slasher", z_scores['FT/FGA']))
-
-    # Etiquetas defensivas
+        etiquetas.append("Playmaker")
+    if z_scores.get('3P%', 0) > umbral:
+        etiquetas.append("Tirador")
     if z_scores.get('BLK%', 0) > umbral:
-        etiquetas.append(("Protector del aro", z_scores['BLK%']))
-    if z_scores.get('STL%', 0) > umbral:
-        etiquetas.append(("Ladrón", z_scores['STL%']))
+        etiquetas.append("Interior defensor")
     if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
-        etiquetas.append(("3&D", z_scores['STL%'] + z_scores.get('3P%', 0)))
+        etiquetas.append("3&D")
+    if z_scores.get('FG%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
+        etiquetas.append("Slasher")
+    if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
+        etiquetas.append("Reboteador puro")
 
-    # Rebounding
-    if z_scores.get('TRB%', 0) > umbral:
-        etiquetas.append(("Reboteador", z_scores['TRB%']))
-    if z_scores.get('ORB%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Dominante en rebote", z_scores['ORB%'] + z_scores['DRB%']))
-    elif z_scores.get('ORB%', 0) > umbral:
-        etiquetas.append(("Reboteador ofensivo", z_scores['ORB%']))
-    elif z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Reboteador defensivo", z_scores['DRB%']))
-
-    # Eficiencia
-    if z_scores.get('Ast/TO', 0) > umbral:
-        etiquetas.append(("Creador eficiente", z_scores['Ast/TO']))
-    if z_scores.get('TOV%', 0) < -umbral:
-        etiquetas.append(("Cuida el balón", -z_scores['TOV%']))
-
-    # Si no hay nada destacado
     if not etiquetas:
         return "Perfil mixto"
 
-    # Ordenar por impacto (z-score alto)
-    etiquetas.sort(key=lambda x: x[1], reverse=True)
-    etiquetas_finales = [e[0] for e in etiquetas[:3]]  # Limita a 3 principales
-
-    return ", ".join(etiquetas_finales)
-
-
+    return ", ".join(etiquetas)
 
 # --- Visualizaciones y tabs ---
 tabs = st.tabs([
@@ -248,16 +223,8 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
-    resultados = [
-    etiquetar_y_prototipar_cluster(df_clustered, cluster_id, vars_seleccionadas)
-    for cluster_id in resumen.index]
-    resumen['Etiqueta'] = [r['etiquetas'] for r in resultados]
-    resumen['Arquetipo'] = [r['arquetipo_principal'] for r in resultados]
-    resumen['Prototipos'] = [", ".join(r['prototipos']) for r in resultados]
-
+    resumen['Etiqueta'] = [describir_cluster_mejorado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
-    df_clustered['PerfilJugador'] = df_clustered['Jugador'] + " — " + df_clustered['ClusterEtiqueta']
-
 
 
     st.dataframe(resumen)
@@ -535,4 +502,3 @@ with tabs[6]:
     st.markdown("_Valores normalizados de 0 a 100._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
-
