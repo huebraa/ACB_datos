@@ -582,6 +582,10 @@ with tabs[7]:
     color_arg = df_scatter[color_var] if color_var != "Ninguna" else None
     size_arg = df_scatter[size_var] if size_var != "Ninguna" else None
 
+    # NUEVO: Checkboxes para escala logarítmica
+    log_x = st.checkbox("Escala logarítmica eje X", value=False)
+    log_y = st.checkbox("Escala logarítmica eje Y", value=False)
+
     fig = px.scatter(
         df_scatter,
         x=var_x,
@@ -594,9 +598,14 @@ with tabs[7]:
         height=600
     )
     fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
-    fig.update_layout(legend_title_text='Color')
+    fig.update_layout(
+        legend_title_text='Color',
+        xaxis_type='log' if log_x else 'linear',
+        yaxis_type='log' if log_y else 'linear'
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     if st.button("Descargar gráfico como PNG"):
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
+
