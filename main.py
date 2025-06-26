@@ -108,6 +108,13 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
+import numpy as np
+import plotly.express as px
+
 # --- Variables para clustering ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
@@ -130,50 +137,61 @@ if len(vars_seleccionadas) < 2:
     st.error("Selecciona al menos 2 variables.")
     st.stop()
 
-k = st.sidebar.slider(
-    "Número de clusters",
-    2, 10,
-    value=st.session_state.get("k", 3),
-    key="k"
+# --- Escalado estándar ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(df_filtrado[vars_seleccionadas])
+
+# --- Selección del algoritmo ---
+algoritmo = st.sidebar.selectbox("Algoritmo de clustering", ["KMeans", "Jerárquico", "DBSCAN"])
+
+# --- Selección del número de clusters (solo si aplica) ---
+if algoritmo in ["KMeans", "Jerárquico"]:
+    calcular_mejor_k = st.sidebar.checkbox("📈 Sugerir automáticamente el mejor k", value=False)
+
+    if calcular_mejor_k:
+        sil_scores = []
+        ks = range(2, 11)
+        for i in ks:
+            kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
+            labels = kmeans.fit_predict(X_scaled)
+            sil = silhouette_score(X_scaled, labels)
+            sil_scores.append(sil)
+        k = ks[np.argmax(sil_scores)]
+        st.sidebar.success(f"✔ Mejor k sugerido: {k}")
+    else:
+        k = st.sidebar.slider("Número de clusters", 2, 10, value=3)
+else:
+    k = None  # DBSCAN no lo necesita
+
+# --- Aplicar el algoritmo ---
+if algoritmo == "KMeans":
+    modelo = KMeans(n_clusters=k, random_state=42, n_init='auto')
+elif algoritmo == "Jerárquico":
+    modelo = AgglomerativeClustering(n_clusters=k)
+elif algoritmo == "DBSCAN":
+    modelo = DBSCAN(eps=1.5, min_samples=4)
+
+# --- Obtener etiquetas ---
+labels = modelo.fit_predict(X_scaled)
+df_filtrado['Cluster'] = labels
+
+# --- Visualización con PCA ---
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+df_filtrado['PCA1'] = X_pca[:, 0]
+df_filtrado['PCA2'] = X_pca[:, 1]
+
+fig = px.scatter(
+    df_filtrado,
+    x="PCA1",
+    y="PCA2",
+    color=df_filtrado['Cluster'].astype(str),
+    hover_data=["Player", "Team_completo", "Pos"],
+    title=f"Visualización de Clustering ({algoritmo}) - PCA",
+    color_discrete_sequence=px.colors.qualitative.Safe
 )
 
-mostrar_radar = st.sidebar.checkbox("Mostrar Radar Charts", True, key="mostrar_radar")
-mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar_dendros")
-mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key="mostrar_similares")
-mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
-
-# --- Preprocesamiento ---
-@st.cache_data(show_spinner=False)
-def preprocesar(df_local, variables_local):
-    df_local = df_local.dropna(subset=variables_local)
-    scaler_local = StandardScaler()
-    X_scaled = scaler_local.fit_transform(df_local[variables_local])
-    return df_local, X_scaled, scaler_local
-
-df_clustered, X_scaled, scaler = preprocesar(df_filtrado, vars_seleccionadas)
-
-@st.cache_data(show_spinner=False)
-def aplicar_kmeans(X_scaled_local, k_local):
-    kmeans_local = KMeans(n_clusters=k_local, random_state=42, n_init='auto')
-    clusters_local = kmeans_local.fit_predict(X_scaled_local)
-    return clusters_local, kmeans_local
-
-clusters, kmeans = aplicar_kmeans(X_scaled, k)
-
-@st.cache_data(show_spinner=False)
-def aplicar_pca(X_scaled_local):
-    pca_local = PCA(n_components=2)
-    X_pca_local = pca_local.fit_transform(X_scaled_local)
-    return X_pca_local, pca_local
-
-X_pca, pca = aplicar_pca(X_scaled)
-
-df_clustered = df_clustered.reset_index(drop=True)
-df_clustered['Cluster'] = clusters
-df_clustered['PCA1'] = X_pca[:, 0]
-df_clustered['PCA2'] = X_pca[:, 1]
-
-
+st.plotly_chart(fig, use_container_width=True)
 
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=0.3):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
