@@ -15,6 +15,9 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import seaborn as sns
 from scipy.stats import percentileofscore
+import matplotlib.pyplot as plt
+from mplsoccer import PyPizza
+
 
 
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
@@ -403,7 +406,6 @@ with tabs[5]:
 # TAB 7: Scouting Report
 with tabs[6]:
 
-
     vars_perfil = vars_seleccionadas  # variables ya definidas en tu código
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
@@ -462,127 +464,61 @@ with tabs[6]:
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
         valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio {posicion}"
-        color_2 = "gray"
-        dash_2 = 'dash'
     elif jugadora_2 == "Promedio de su cluster":
         df_clu = df_clustered[df_clustered['Cluster'] == cluster]
         valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio Cluster {cluster}"
-        color_2 = "orange"
-        dash_2 = 'dot'
     else:
         valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
         nombre_2 = jugadora_2
-        color_2 = "firebrick"
-        dash_2 = 'solid'
 
-    # Cerrar el radar
-    valores_1 += valores_1[:1]
-    valores_2 += valores_2[:1]
-    labels = vars_todas + vars_todas[:1]
+    # Pizza plot con mplsoccer
+    color_perfil = "#1f77b4"      # azul
+    color_rendimiento = "#ff7f0e" # naranja
 
-    # Crear radar con Plotly
-    fig = go.Figure()
+    etiquetas = vars_todas
+    valores_1_sin_cerrar = valores_1
+    valores_2_sin_cerrar = valores_2
 
-    # Bloque perfil
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1[:len(vars_perfil)+1],
-        theta=labels[:len(vars_perfil)+1],
-        fill='toself',
-        name=jugadora_1 + " - Perfil",
-        line=dict(color='#006699', width=3),
-        fillcolor='rgba(0,102,153,0.3)',
-        hoverinfo='all'
-    ))
-
-    # Bloque rendimiento
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1[len(vars_perfil):],
-        theta=labels[len(vars_perfil):],
-        fill='toself',
-        name=jugadora_1 + " - Rendimiento",
-        line=dict(color='#ffa500', width=3),
-        fillcolor='rgba(255,165,0,0.3)',
-        hoverinfo='all'
-    ))
-
-    # Comparativa jugador 2 - perfil
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2[:len(vars_perfil)+1],
-        theta=labels[:len(vars_perfil)+1],
-        fill='toself',
-        name=nombre_2 + " - Perfil",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(128,128,128,0.2)' if dash_2 == 'dash' else 'rgba(255,165,0,0.15)',
-        hoverinfo='all'
-    ))
-
-    # Comparativa jugador 2 - rendimiento
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2[len(vars_perfil):],
-        theta=labels[len(vars_perfil):],
-        fill='toself',
-        name=nombre_2 + " - Rendimiento",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(255,165,0,0.15)',
-        hoverinfo='all'
-    ))
-
-    fig.update_layout(
-        polar=dict(
-            bgcolor="#f9f9f9",
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100],
-                tickvals=[0, 25, 50, 75, 100],
-                ticktext=["0", "25", "50", "75", "100"],
-                gridcolor="lightgray",
-                gridwidth=1
-            ),
-            angularaxis=dict(
-                tickfont=dict(size=10, color="black", family="Arial Black"),
-            )
-        ),
-        legend=dict(
-            title="Leyenda",
-            font=dict(size=12),
-            bgcolor="white",
-            bordercolor="black",
-            borderwidth=1,
-            x=1.1,
-            y=1
-        ),
-        margin=dict(t=50, b=50, l=50, r=150),
-        title=f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento",
-        title_font_size=18
+    baker = PyPizza(
+        params=etiquetas,
+        background_color="#fafafa",
+        straight_line_color="#dddddd",
+        straight_line_lw=1,
+        last_circle_lw=0,
+        other_circle_lw=0,
+        inner_circle_size=20,
+        inner_circle_color="#fafafa",
+        param_location=110,
+        fontsize=12,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    fig, ax = baker.make_pizza(
+        valores_1_sin_cerrar,
+        figsize=(10, 10),
+        color_blank_space="lightgrey",
+        slice_colors=[color_perfil]*len(vars_perfil) + [color_rendimiento]*len(vars_rendimiento),
+        value_colors=["#333333"] * len(valores_1_sin_cerrar),
+        kwargs_slices=dict(edgecolor="black", zorder=2, linewidth=1),
+        kwargs_params=dict(color="#222222", fontsize=14),
+        kwargs_values=dict(color="#222222", fontsize=13, zorder=3,
+                           bbox=dict(edgecolor="black", facecolor="white", boxstyle="round,pad=0.2")),
+    )
 
-    st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
-    st.markdown("_Valores normalizados de 0 a 100._")
-    
-    # Explicaciones sencillas de las stats de rendimiento
-    st.markdown("### 📚 Explicación sencilla de las estadísticas de rendimiento")
-    
-    explicaciones_rendimiento = {
-        "ORtg": "Puntos que un jugador/a ayuda a su equipo a anotar por cada 100 jugadas. Más es mejor. 🏀",
-        "DRtg": "Puntos que un jugador/a permite que el equipo contrario anote por cada 100 jugadas. Menos es mejor. 🛡️",
-        "eDiff": "Diferencia entre puntos a favor y en contra cuando el jugador/a está en cancha. Positivo significa impacto positivo. ⚖️",
-        "FIC": "Cuánto impacto tiene el jugador/a en el juego cuando está en la cancha. Más alto, mayor influencia. 🌟",
-        "PER": "Nota general de eficiencia en el juego. Cuanto más alto, mejor rendimiento. 📈",
-        "OWS": "Contribución del jugador/a a las victorias del equipo con su ataque. ⚔️",
-        "DWS": "Contribución del jugador/a a las victorias del equipo con su defensa. 🛡️",
-        "WS": "Contribución total del jugador/a a las victorias del equipo. 🏆"
-    }
-    
-    for var in vars_rendimiento:
-        desc = explicaciones_rendimiento.get(var, "Esta estadística mide algo importante sobre el jugador/a.")
-        st.markdown(f"**{var}**: {desc}")
-    
-    # Luego muestras el scouting con fortalezas y debilidades
-    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
+    # Añadir valores jugadora 2 en rojo con líneas discontinuas y puntos
+    angles = baker._angles
+    for i, (angle, valor) in enumerate(zip(angles, valores_2_sin_cerrar)):
+        angle_rad = angle * (np.pi / 180)
+        x = valor * baker._radii[-1] / 100 * np.cos(angle_rad)
+        y = valor * baker._radii[-1] / 100 * np.sin(angle_rad)
+        ax.plot([0, x], [0, y], color="red", linestyle="--", lw=2, alpha=0.7)
+        ax.scatter(x, y, color="red", s=80, alpha=0.8, label=nombre_2 if i == 0 else "")
 
+    ax.set_title(f"Comparativa Scouting\n{jugadora_1} (azul & naranja) vs {nombre_2} (rojo)",
+                 fontsize=20, fontweight="bold")
+    ax.legend(loc="upper right", fontsize=14)
+
+    st.pyplot(fig)
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
