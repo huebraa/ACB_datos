@@ -336,8 +336,19 @@ with tabs[5]:
 with tabs[6]:
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
     from sklearn.preprocessing import MinMaxScaler
     from scipy.stats import percentileofscore
+    import streamlit as st
+
+    # Variables que usas para perfil (ejemplo)
+    vars_perfil = vars_seleccionadas  # las que ya tienes definidas en tu código
+
+    # Variables de rendimiento avanzado a añadir
+    vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
+
+    # Unión de variables para el radar
+    vars_todas = vars_perfil + vars_rendimiento
 
     def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
         percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
@@ -366,7 +377,6 @@ with tabs[6]:
             else:
                 st.markdown("🟢 Sin áreas críticas de mejora detectadas.")
 
-
     st.subheader("🔍 Scouting individual y comparativo")
 
     col1, col2 = st.columns(2)
@@ -381,32 +391,31 @@ with tabs[6]:
 
     fila_1 = df_clustered[df_clustered['Player'] == jugadora_1].iloc[0]
     posicion = fila_1['Pos']
+    cluster = fila_1['Cluster']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
+    # Normalizar todas las variables juntas (perfil + rendimiento)
     scaler = MinMaxScaler((0, 100))
-    normalizados = scaler.fit_transform(df_clustered[vars_seleccionadas])
-    df_norm = pd.DataFrame(normalizados, columns=vars_seleccionadas)
+    normalizados = scaler.fit_transform(df_clustered[vars_todas])
+    df_norm = pd.DataFrame(normalizados, columns=vars_todas)
     df_norm['Player'] = df_clustered['Player'].values
 
-    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_seleccionadas].values.flatten().tolist()
+    valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten().tolist()
 
     if jugadora_2 == "Promedio de su posición":
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
-        valores_2 = scaler.transform(df_pos[vars_seleccionadas]).mean(axis=0).tolist()
+        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio {posicion}"
         color_2 = "#999999"
         linestyle_2 = "dashed"
-
     elif jugadora_2 == "Promedio de su cluster":
-        cluster_id = fila_1['Cluster']
-        df_clu = df_clustered[df_clustered['Cluster'] == cluster_id]
-        valores_2 = scaler.transform(df_clu[vars_seleccionadas]).mean(axis=0).tolist()
-        nombre_2 = f"Promedio Cluster {cluster_id}"
+        df_clu = df_clustered[df_clustered['Cluster'] == cluster]
+        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio Cluster {cluster}"
         color_2 = "#cc9900"
         linestyle_2 = "dotted"
-
     else:
-        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_seleccionadas].values.flatten().tolist()
+        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
         nombre_2 = jugadora_2
         color_2 = "#cc5c5c"
         linestyle_2 = "solid"
@@ -414,28 +423,41 @@ with tabs[6]:
     valores_1 += valores_1[:1]
     valores_2 += valores_2[:1]
 
-    labels = vars_seleccionadas
+    labels = vars_todas
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor("white")
 
+    # Sombreado bloque rendimiento avanzado
+    start_idx = len(vars_perfil)
+    end_idx = len(vars_todas)
+    angles_rend = angles[start_idx:end_idx+1]  # +1 para cerrar el polígono
+    ax.fill_between(angles_rend, 0, 100, color="#f0e68c", alpha=0.2, zorder=0)  # bloque rendimiento (color suave)
+
+    # Plot jugador 1
     ax.plot(angles, valores_1, linewidth=2.5, color="#006699", label=jugadora_1)
     ax.fill(angles, valores_1, color="#006699", alpha=0.25)
 
+    # Plot jugador 2
     ax.plot(angles, valores_2, linewidth=2.5, color=color_2, linestyle=linestyle_2, label=nombre_2)
     ax.fill(angles, valores_2, color=color_2, alpha=0.15)
 
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, fontsize=10, color="#333333", fontweight='bold')
+
     ax.set_yticklabels([])
     ax.grid(color="#CCCCCC", linestyle="dotted", linewidth=0.8)
-    ax.set_title(f"{jugadora_1} vs {nombre_2}", fontsize=14, fontweight='bold', color="#222222", pad=15)
-    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.05), fontsize=9)
+
+    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=16, fontweight='bold', color="#222222", pad=20)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.1), fontsize=10)
 
     st.pyplot(fig)
+
+    st.markdown("_El bloque sombreado representa las variables de rendimiento avanzado._")
     st.markdown("_Valores normalizados (0-100)._")
 
-    # Mostrar scouting visual con barras y columnas
-    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas)
+    # Mostrar scouting visual con barras y columnas (solo perfil para claridad)
+    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
