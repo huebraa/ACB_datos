@@ -631,29 +631,16 @@ with tabs[7]:
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
 
 
-st.markdown("---")
+st.code("""
+Aplicación para análisis de jugadores FIBA.
 
-st.markdown("""
-### ℹ️ Sobre esta aplicación
+📊 Estadísticas recopiladas desde RealGM (https://basketball.realgm.com/)
+🛠️ Creada con Streamlit
 
-Esta herramienta tiene como objetivo facilitar el análisis de jugadores FIBA para scouting, fichajes y desarrollo.  
-Pensada para aficionados, clubes, agentes, entrenadores y analistas que deseen una visualización rápida basada en estadísticas avanzadas.
+Autor: Asier Huebra Aguinaga
+Contacto: 
+Twitter: @MrLopez_24 (https://x.com/MrLopez_24)
 
----
-**📊 Datos:**  
-Los datos mostrados en esta app provienen de [RealGM](https://basketball.realgm.com/) y han sido limpiados y procesados manualmente para su visualización.  
-Última actualización: **junio 2025**
-
----
-**👨‍💻 Desarrollador:**  
-Esta app ha sido desarrollada por Asier Huebra Aguinaga como proyecto personal y de exploración analítica.  
-
-✉️ Contacto / feedback:
-🐦 Twitter / X: [MrLopez_24](https://x.com/MrLopez_24)
-
----
-⚠️ *Disclaimer:* Esta herramienta es orientativa y no representa asesoramiento profesional.  
-Las estadísticas pueden contener errores o estar desactualizadas. Usa esta información bajo tu propio criterio.
-
+⚠️ Esta herramienta tiene fines informativos. Los datos pueden contener errores o estar desactualizados.
 """)
 
