@@ -204,52 +204,26 @@ def etiquetar_y_prototipar_cluster(df_total, cluster_id, vars_seleccionadas, umb
     # Rebounding
     if z_scores.get('TRB%', 0) > umbral:
         etiquetas.append(("Reboteador", z_scores['TRB%']))
-    if z_scores.get('ORB%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Dominante en rebote", z_scores['ORB%'] + z_scores['DRB%']))
-    elif z_scores.get('ORB%', 0) > umbral:
-        etiquetas.append(("Reboteador ofensivo", z_scores['ORB%']))
-    elif z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Reboteador defensivo", z_scores['DRB%']))
 
-    # Eficiencia
-    if z_scores.get('Ast/TO', 0) > umbral:
-        etiquetas.append(("Creador eficiente", z_scores['Ast/TO']))
-    if z_scores.get('TOV%', 0) < -umbral:
-        etiquetas.append(("Cuida el balón", -z_scores['TOV%']))
-
-    # Si no hay nada destacado
     if not etiquetas:
-        etiquetas = [("Perfil mixto", 0)]
+        etiquetas.append(("Generalista", 0))
 
-    # Ordenar por impacto
     etiquetas.sort(key=lambda x: x[1], reverse=True)
-    etiquetas_finales = [e[0] for e in etiquetas[:3]]
 
-    # Arquetipo principal = más destacado
-    arquetipo_principal = etiquetas_finales[0]
+    arquetipo_principal = etiquetas[0][0]
 
-    # Diccionario de prototipos
-    arquetipos_prototipos = {
-        "Playmaker": ["Tyrese Haliburton", "Ricky Rubio"],
-        "Finalizador": ["Zach LaVine", "Anthony Edwards"],
-        "Tirador": ["Klay Thompson", "Buddy Hield"],
-        "Slasher": ["DeMar DeRozan", "RJ Barrett"],
-        "Protector del aro": ["Jaren Jackson Jr.", "Walker Kessler"],
-        "Ladrón": ["Matisse Thybulle", "Alex Caruso"],
-        "3&D": ["OG Anunoby", "Dorian Finney-Smith"],
-        "Reboteador": ["Clint Capela", "Andre Drummond"],
-        "Dominante en rebote": ["Steven Adams", "Domantas Sabonis"],
-        "Reboteador ofensivo": ["Mitchell Robinson", "Kenneth Faried"],
-        "Reboteador defensivo": ["Brook Lopez", "Rudy Gobert"],
-        "Creador eficiente": ["Chris Paul", "Monte Morris"],
-        "Cuida el balón": ["Malcolm Brogdon", "Tyus Jones"],
-        "Perfil mixto": ["Bruce Brown", "Josh Hart"]
-    }
+    # Encontrar prototipos (jugadores más representativos del cluster)
+    def calcular_similitud_jugador(jugador):
+        jugador_valores = jugador[vars_seleccionadas].values
+        distancia = np.linalg.norm(scaler.transform([jugador_valores]) - kmeans.cluster_centers_[cluster_id])
+        return distancia
 
-    prototipos = arquetipos_prototipos.get(arquetipo_principal, [])
+    cluster_jugadores = df_total[df_total['Cluster'] == cluster_id]
+    cluster_jugadores['Distancia'] = cluster_jugadores.apply(calcular_similitud_jugador, axis=1)
+    prototipos = cluster_jugadores.nsmallest(5, 'Distancia')
 
     return {
-        "etiquetas": etiquetas_finales,
+        "etiquetas": [e[0] for e in etiquetas],
         "arquetipo_principal": arquetipo_principal,
         "prototipos": prototipos
     }
