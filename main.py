@@ -14,37 +14,7 @@ from scipy.stats import percentileofscore
 
 st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
-st.sidebar.title("Configuración")
-
-# --- Cargar ambas ligas ---
-ligas = {
-    "Liga ACB": "datos/estadisticas_acb_2025.csv",
-    "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
-}
-
-df_acb = cargar_datos(ligas["Liga ACB"])
-df_acb["Liga"] = "ACB"
-
-df_feb = cargar_datos(ligas["Primera FEB"])
-df_feb["Liga"] = "Primera FEB"
-
-# Combinar ambos datasets
-df = pd.concat([df_acb, df_feb], ignore_index=True)
-
-# --- Filtro opcional por liga ---
-ligas_filtradas = st.sidebar.multiselect(
-    "Filtrar por liga",
-    options=df['Liga'].unique(),
-    default=df['Liga'].unique()
-)
-
-df = df[df['Liga'].isin(ligas_filtradas)]
-
-
-st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
-st.sidebar.title("Configuración")
-
-# --- Opciones de ligas y carga dinámica ---
+# --- Función para cargar datos ---
 @st.cache_data(show_spinner=False)
 def cargar_datos(path):
     df = pd.read_csv(path)
@@ -59,41 +29,35 @@ def cargar_datos(path):
             df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
 
-# Diccionario de rutas
+# Diccionario de rutas de archivos
 ligas_dict = {
     "Liga ACB": "datos/estadisticas_acb_2025.csv",
     "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
 }
 
-# Selección múltiple de ligas
+st.sidebar.title("Configuración")
+
+# Selección de ligas para cargar
 ligas_seleccionadas = st.sidebar.multiselect(
     "Selecciona una o más ligas",
     options=list(ligas_dict.keys()),
     default=list(ligas_dict.keys())
 )
 
-# Cargar los datasets seleccionados
-dfs_ligas = []
-for liga in ligas_seleccionadas:
-    df_liga = cargar_datos(ligas_dict[liga])
-    df_liga["Liga"] = liga  # Añadir columna con nombre de liga
-    dfs_ligas.append(df_liga)
-
-# Combinar
-df = pd.concat(dfs_ligas, ignore_index=True)
-
-if df.empty:
+if not ligas_seleccionadas:
     st.warning("Selecciona al menos una liga para continuar.")
     st.stop()
 
+# Cargar datos de ligas seleccionadas
+dfs_ligas = []
+for liga in ligas_seleccionadas:
+    df_liga = cargar_datos(ligas_dict[liga])
+    df_liga["Liga"] = liga
+    dfs_ligas.append(df_liga)
 
-
-
+df = pd.concat(dfs_ligas, ignore_index=True)
 
 # --- FILTROS ---
-st.sidebar.title("Configuración")
-
-# Inicializar session_state para filtros
 if "posiciones" not in st.session_state:
     st.session_state.posiciones = []
 if "equipos" not in st.session_state:
@@ -114,11 +78,9 @@ equipos = st.sidebar.multiselect(
     default=st.session_state.equipos,
     key="equipos"
 )
-min_min = int(df['MIN'].min())
-max_min = int(df['MIN'].max()) + 1  # +1 para que el slider incluya hasta un minuto más
 
-if "minutos" not in st.session_state:
-    st.session_state["minutos"] = (min_min, max_min)
+min_min = int(df['MIN'].min())
+max_min = int(df['MIN'].max()) + 1
 
 minutos_seleccionados = st.sidebar.slider(
     "Filtrar por minutos jugados (MIN)",
@@ -127,13 +89,6 @@ minutos_seleccionados = st.sidebar.slider(
     value=st.session_state["minutos"],
     key="minutos"
 )
-
-# Filtro
-df_filtrado = df[(df['MIN'] >= minutos_seleccionados[0]) & (df['MIN'] <= minutos_seleccionados[1])]
-
-
-
-
 
 def aplicar_filtros(df, posiciones, equipos, minutos):
     df_filt = df.copy()
@@ -147,60 +102,12 @@ def aplicar_filtros(df, posiciones, equipos, minutos):
 
 df_filtrado = aplicar_filtros(df, posiciones, equipos, minutos_seleccionados)
 
-def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
-    """
-    Describe el cluster basándose en z-scores de las variables seleccionadas.
-    Asigna etiquetas si la media del cluster está > umbral desviaciones estándar 
-    por encima o debajo del promedio global.
-    """
-    cluster_data = df_total[df_total['Cluster'] == cluster_id]
-    if cluster_data.empty:
-        return "Cluster vacío"
-
-    global_mean = df_total[vars_seleccionadas].mean()
-    global_std = df_total[vars_seleccionadas].std()
-    centroid = cluster_data[vars_seleccionadas].mean()
-
-    z_scores = (centroid - global_mean) / global_std
-
-    etiquetas = []
-
-    if z_scores.get('AST%', 0) > umbral:
-        etiquetas.append("Playmaker")
-    if z_scores.get('3P%', 0) > umbral:
-        etiquetas.append("Tirador")
-    if z_scores.get('BLK%', 0) > umbral:
-        etiquetas.append("Interior defensor")
-    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
-        etiquetas.append("3&D")
-    if z_scores.get('FG%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
-        etiquetas.append("Slasher")
-    if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
-        etiquetas.append("Reboteador puro")
-
-    if not etiquetas:
-        return "Perfil mixto"
-
-    return ", ".join(etiquetas)
-
-
-
-
-# --- VARIABLES Y PARÁMETROS ---
+# --- Variables para clustering ---
 columnas_excluir = ['#_prom', 'Player', 'Team_prom', '#_adv', 'Team_adv', 'Team_completo', 'Pos']
 columnas_numericas = df_filtrado.select_dtypes(include='number').columns
 variables = [c for c in columnas_numericas if c not in columnas_excluir]
 
-# Lista prediseñada recomendada de variables para clustering
 vars_predeterminadas = ['3PA', '3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'BLK%', 'STL%', 'USG%', 'Ast/TO', 'Stl/TO', 'FT/FGA']
-
-# Solo incluye las que existan en el dataframe y variables válidas
-vars_predeterminadas = [v for v in vars_predeterminadas if v in variables]
-
-# Lista prediseñada recomendada de variables para clustering
-vars_predeterminadas = ['3PA', '3P%', 'ORB%', 'TRB%', 'AST%', 'TOV%', 'BLK%', 'STL%', 'USG%', 'Ast/TO', 'Stl/TO', 'FT/FGA']
-
-# Filtrar solo las variables que existen en el dataframe
 vars_predeterminadas = [v for v in vars_predeterminadas if v in variables]
 
 st.sidebar.markdown("### Variables recomendadas para clustering:")
@@ -208,12 +115,14 @@ st.sidebar.markdown(", ".join(vars_predeterminadas))
 
 vars_seleccionadas = st.sidebar.multiselect(
     "Variables para clustering",
-    variables,
+    options=variables,
     default=st.session_state.get("vars_seleccionadas", vars_predeterminadas),
     key="vars_seleccionadas"
 )
 
-
+if len(vars_seleccionadas) < 2:
+    st.error("Selecciona al menos 2 variables.")
+    st.stop()
 
 k = st.sidebar.slider(
     "Número de clusters",
@@ -227,11 +136,7 @@ mostrar_dendros = st.sidebar.checkbox("Mostrar Dendrogramas", True, key="mostrar
 mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key="mostrar_similares")
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
 
-if len(vars_seleccionadas) < 2:
-    st.error("Selecciona al menos 2 variables.")
-    st.stop()
-
-# --- PROCESAMIENTOS CACHEADOS ---
+# --- Preprocesamiento ---
 @st.cache_data(show_spinner=False)
 def preprocesar(df_local, variables_local):
     df_local = df_local.dropna(subset=variables_local)
@@ -262,7 +167,39 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-# --- VISUALIZACIONES ---
+# --- Función para describir clusters ---
+def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
+    cluster_data = df_total[df_total['Cluster'] == cluster_id]
+    if cluster_data.empty:
+        return "Cluster vacío"
+
+    global_mean = df_total[vars_seleccionadas].mean()
+    global_std = df_total[vars_seleccionadas].std()
+    centroid = cluster_data[vars_seleccionadas].mean()
+
+    z_scores = (centroid - global_mean) / global_std
+
+    etiquetas = []
+
+    if z_scores.get('AST%', 0) > umbral:
+        etiquetas.append("Playmaker")
+    if z_scores.get('3P%', 0) > umbral:
+        etiquetas.append("Tirador")
+    if z_scores.get('BLK%', 0) > umbral:
+        etiquetas.append("Interior defensor")
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
+        etiquetas.append("3&D")
+    if z_scores.get('FG%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
+        etiquetas.append("Slasher")
+    if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
+        etiquetas.append("Reboteador puro")
+
+    if not etiquetas:
+        return "Perfil mixto"
+
+    return ", ".join(etiquetas)
+
+# --- Visualizaciones y tabs ---
 tabs = st.tabs([
     "📊 Clusters",
     "🌳 Dendrogramas",
