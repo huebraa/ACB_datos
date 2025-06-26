@@ -174,6 +174,51 @@ df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
 # --- Función para describir clusters ---
+def asignar_perfil_experto(centroid):
+    perfiles_expertos = {
+        "Base / Playmaker": {
+            "AST%": (10, 100), "USG%": (15, 40), "TOV%": (0, 15), "STL%": (1, 5)
+        },
+        "Tirador puro": {
+            "3P%": (35, 100), "3PA": (3, 100), "PPG": (10, 40)
+        },
+        "Alero versátil": {
+            "TRB%": (5, 15), "STL%": (1, 3), "PPG": (8, 25), "AST%": (3, 15)
+        },
+        "Ala-pívot": {
+            "TRB%": (10, 25), "BLK%": (1, 5), "PPG": (8, 25)
+        },
+        "Pívot protector": {
+            "BLK%": (3, 15), "TRB%": (12, 30), "PPG": (5, 20)
+        },
+        "Especialista defensa": {
+            "STL%": (2, 10), "BLK%": (2, 10), "TOV%": (0, 10)
+        },
+        "Anotador principal": {
+            "PPG": (20, 40), "USG%": (20, 50), "TOV%": (5, 20)
+        },
+        "All-around": {
+            "AST%": (5, 20), "TRB%": (5, 20), "STL%": (1, 5), "BLK%": (1, 5), "PPG": (10, 30)
+        }
+    }
+
+    perfiles_posibles = []
+    for perfil, rangos in perfiles_expertos.items():
+        cumple = True
+        for var, (min_val, max_val) in rangos.items():
+            val = centroid.get(var, None)
+            if val is None or not (min_val <= val <= max_val):
+                cumple = False
+                break
+        if cumple:
+            perfiles_posibles.append(perfil)
+
+    if perfiles_posibles:
+        return ", ".join(perfiles_posibles)
+    else:
+        return "Perfil no definido"
+
+
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
@@ -191,54 +236,49 @@ def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=
 
     etiquetas = []
 
-    # Regla Playmaker
+    # Reglas basadas en z-scores (ya definidas)
     if z_scores.get('AST%', 0) > umbral and z_scores.get('Ast/TO', 0) > 0:
         etiquetas.append("Playmaker")
 
-    # Tirador especialista
     if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) > 50:
         etiquetas.append("Tirador")
 
-    # Interior Defensor
     if z_scores.get('BLK%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
         etiquetas.append("Interior Defensor")
 
-    # 3&D
     if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > umbral:
         etiquetas.append("3&D")
 
-    # Slasher
     if (z_scores.get('FG%', 0) > umbral and
         z_scores.get('USG%', 0) > umbral and
         z_scores.get('TOV%', 0) < umbral):
         etiquetas.append("Slasher")
 
-    # Reboteador puro
     if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
         etiquetas.append("Reboteador Puro")
 
-    # Defensor versátil
     if z_scores.get('STL%', 0) > umbral and z_scores.get('BLK%', 0) > 0.5*umbral:
         etiquetas.append("Defensor Versátil")
 
-    # Tirador de media distancia
     if (z_scores.get('FG%', 0) > umbral and
         z_scores.get('3P%', 0) < umbral and
         z_scores.get('USG%', 0) > umbral):
         etiquetas.append("Tirador de Media")
 
-    # Tirador selectivo
     if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) < 50:
         etiquetas.append("Tirador Selectivo")
 
-    # Eficiente general
     if z_scores.get('TS%', 0) > umbral and z_scores.get('TOV%', 0) < umbral:
         etiquetas.append("Eficiente")
 
-    # Generador de juego de alto volumen
     if z_scores.get('AST%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
         etiquetas.append("Generador de Juego")
 
+    # Aquí integramos el perfil experto
+    perfil_experto = asignar_perfil_experto(centroid)
+    etiquetas.append(perfil_experto)
+
+    # Si no hay etiquetas, default
     if not etiquetas:
         return "Perfil Mixto"
 
