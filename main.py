@@ -173,81 +173,47 @@ df_clustered['PCA2'] = X_pca[:, 1]
 
 
 
-def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=0.3):
-    cluster_data = df_total[df_total['Cluster'] == cluster_id]
-    if cluster_data.empty:
-        return "Cluster vacío"
-
-    # Estadísticas globales y del clúster
-    global_mean = df_total[vars_seleccionadas].mean()
-    global_std = df_total[vars_seleccionadas].std()
-    centroid = cluster_data[vars_seleccionadas].mean()
-    z_scores = (centroid - global_mean) / global_std
-
-    # Percentiles para métricas específicas
-    percentiles = {var: percentileofscore(df_total[var].dropna(), centroid[var]) 
-                   for var in ['3PA', 'TOV%'] if var in df_total.columns}
-
+def describir_cluster_avanzado(cluster_media):
     etiquetas = []
 
-    # --- ETIQUETAS ---
-
-    # Facilitador / Playmaker
-    if z_scores.get('AST%', 0) > 0.5 and z_scores.get('Ast/TO', 0) > 0.3:
-        etiquetas.append("Playmaker")
-
-    # Generador de juego (mucho uso y asistencia)
-    if z_scores.get('AST%', 0) > 0.5 and z_scores.get('USG%', 0) > 0.3:
-        etiquetas.append("Generador de Juego")
-
-    # Tirador de tres
-    if z_scores.get('3P%', 0) > 0.3 and percentiles.get('3PA', 0) > 50:
+    # Tirador de 3
+    if cluster_media['3PA'] >= 3 and cluster_media['3P%'] >= 0.33:
         etiquetas.append("Tirador")
-
-    # Tirador selectivo
-    if z_scores.get('3P%', 0) > 0.3 and percentiles.get('3PA', 0) < 50:
+    elif cluster_media['3P%'] >= 0.35 and cluster_media['3PA'] < 2:
         etiquetas.append("Tirador Selectivo")
 
-    # 3&D (defensor + triple)
-    if z_scores.get('3P%', 0) > 0.2 and z_scores.get('STL%', 0) > 0.3:
-        etiquetas.append("3&D")
-
-    # Slasher
-    if z_scores.get('FG%', 0) > 0.3 and z_scores.get('USG%', 0) > 0.3 and z_scores.get('TOV%', 0) < 0:
+    # Slasher / Anotador Interior
+    if cluster_media['FG%'] if 'FG%' in cluster_media else 0 > 0.5 and cluster_media['FT/FGA'] > 0.4:
         etiquetas.append("Slasher")
 
-    # Tirador de media
-    if z_scores.get('FG%', 0) > 0.4 and z_scores.get('3P%', 0) < 0.2:
-        etiquetas.append("Tirador de Media Distancia")
+    # Playmaker
+    if cluster_media['AST%'] >= 20 and cluster_media['Ast/TO'] >= 2:
+        etiquetas.append("Playmaker")
+    elif cluster_media['AST%'] >= 10:
+        etiquetas.append("Facilitador Secundario")
 
-    # Interior Defensivo
-    if z_scores.get('BLK%', 0) > 0.5 and z_scores.get('DRB%', 0) > 0.3:
+    # Big man tradicional / Interior Defensor
+    if cluster_media['ORB%'] > 10 and cluster_media['BLK%'] > 3:
         etiquetas.append("Interior Defensor")
 
     # Reboteador puro
-    if z_scores.get('TRB%', 0) > 0.5 and z_scores.get('USG%', 0) < -0.2:
-        etiquetas.append("Reboteador Puro")
+    if cluster_media['TRB%'] > 15 and cluster_media['USG%'] < 17:
+        etiquetas.append("Reboteador")
+
+    # 3&D
+    if cluster_media['3P%'] >= 0.33 and cluster_media['STL%'] >= 2:
+        etiquetas.append("3&D")
 
     # Defensor versátil
-    if z_scores.get('STL%', 0) > 0.4 and z_scores.get('BLK%', 0) > 0.2:
+    if cluster_media['STL%'] >= 2 and cluster_media['BLK%'] >= 2:
         etiquetas.append("Defensor Versátil")
 
-    # Eficiente general
-    if z_scores.get('TS%', 0) > 0.4 and z_scores.get('TOV%', 0) < 0:
+    # Eficiente
+    if cluster_media['FT/FGA'] > 0.4 and cluster_media['TOV%'] < 12:
         etiquetas.append("Eficiente")
 
-    # Facilitador secundario
-    if 0.2 < z_scores.get('AST%', 0) < 0.5 and 0.1 < z_scores.get('USG%', 0) < 0.4:
-        etiquetas.append("Facilitador Secundario")
-
-    # Si ninguna etiqueta se asignó, usar heurística de dispersión
     if not etiquetas:
-        num_altos = sum(1 for v in z_scores.values if v > 0.4)
-        num_bajos = sum(1 for v in z_scores.values if v < -0.4)
-        if num_altos <= 2 and num_bajos <= 2:
-            etiquetas.append("Perfil Mixto")
-        else:
-            etiquetas.append("Perfil Indefinido")
+        etiquetas.append("Perfil Mixto")
 
     return ", ".join(etiquetas)
 
