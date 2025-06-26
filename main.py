@@ -171,7 +171,7 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-def etiquetar_y_prototipar_cluster(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
+def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
         return {"etiquetas": "Cluster vacío", "arquetipo_principal": None, "prototipos": []}
@@ -277,7 +277,7 @@ with tabs[0]:
     resultados = [
     etiquetar_y_prototipar_cluster(df_clustered, cluster_id, vars_seleccionadas)
     for cluster_id in resumen.index]
-    resumen['Etiqueta'] = [r['etiquetas'] for r in resultados]
+    resumen['Etiqueta'] = [describir_cluster_avanzado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
     resumen['Arquetipo'] = [r['arquetipo_principal'] for r in resultados]
     resumen['Prototipos'] = [", ".join(r['prototipos']) for r in resultados]
 
