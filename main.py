@@ -335,9 +335,13 @@ with tabs[5]:
         st.pyplot(fig)
 # TAB 7: Scouting Report
 with tabs[6]:
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import matplotlib.patheffects as mpe
+    from sklearn.preprocessing import MinMaxScaler
+    from scipy.stats import percentileofscore
 
-
-    vars_perfil = vars_seleccionadas
+    vars_perfil = vars_seleccionadas  # variables perfil (las que ya usas)
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
     vars_todas = vars_perfil + vars_rendimiento
 
@@ -349,6 +353,7 @@ with tabs[6]:
         st.markdown("### 🏀 Informe de Fortalezas y Debilidades")
 
         col1, col2 = st.columns(2)
+
         with col1:
             st.markdown("#### 🟢 Fortalezas")
             if fortalezas:
@@ -357,6 +362,7 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("✅ Perfil equilibrado sin áreas sobresalientes.")
+
         with col2:
             st.markdown("#### 🔴 Debilidades")
             if debilidades:
@@ -365,6 +371,16 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("🟢 Sin áreas críticas de mejora detectadas.")
+
+    def label_on_angle(ax, angle, text, radius=1.1):
+        angle = angle % (2 * np.pi)
+        ha = "center"
+        if 0 < angle < np.pi:
+            ha = "left"
+        elif np.pi < angle < 2*np.pi:
+            ha = "right"
+        ax.text(angle, radius, text, fontsize=13, fontweight='bold', color="#f39c12", ha=ha, va='center', alpha=0.9,
+                path_effects=[mpe.withStroke(linewidth=4, foreground="white")])
 
     st.subheader("🔍 Scouting individual y comparativo")
 
@@ -394,7 +410,7 @@ with tabs[6]:
         df_pos = df_clustered[df_clustered['Pos'] == posicion]
         valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
         nombre_2 = f"Promedio {posicion}"
-        color_2 = "#888888"
+        color_2 = "#999999"
         linestyle_2 = "dashed"
     elif jugadora_2 == "Promedio de su cluster":
         df_clu = df_clustered[df_clustered['Cluster'] == cluster]
@@ -416,68 +432,39 @@ with tabs[6]:
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor('white')
+    fig.patch.set_facecolor("#fafafa")
 
-    # Añadir líneas radiales con menor opacidad y grosor
-    for angle in angles[:-1]:
-        ax.plot([angle, angle], [0, 100], color="#bbb", linewidth=0.8, alpha=0.3, zorder=0)
+    # Sombreado bloques perfil y rendimiento
+    ax.fill_between(angles[:len(vars_perfil)+1], 0, 100, color="#0a74da", alpha=0.15, zorder=0)
+    ax.fill_between(angles[len(vars_perfil):], 0, 100, color="#f39c12", alpha=0.15, zorder=0)
 
-    # Añadir círculos guía con texto pequeño y elegante
-    grid_values = [25, 50, 75, 100]
-    for gv in grid_values:
-        ax.plot(angles, [gv] * len(angles), color="#bbb", linewidth=0.7, linestyle='dotted', alpha=0.25, zorder=0)
-        ax.text(np.pi/2, gv + 2, f"{gv}", color="#666", fontsize=8, ha='center', va='bottom', alpha=0.6)
+    # Líneas de relleno
+    ax.plot(angles, valores_1, color="#0a74da", linewidth=3, linestyle='solid', label=jugadora_1)
+    ax.fill(angles, valores_1, color="#0a74da", alpha=0.35)
 
-    # Divisor visual bloques perfil y rendimiento (líneas radiales en color fuerte)
-    idx_div = len(vars_perfil)
-    ang_div = angles[idx_div]
-    ax.plot([ang_div, ang_div], [0, 100], color="#f39c12", linewidth=2.5, zorder=1)
+    ax.plot(angles, valores_2, color=color_2, linewidth=3, linestyle=linestyle_2, label=nombre_2)
+    ax.fill(angles, valores_2, color=color_2, alpha=0.2)
 
-    # Etiqueta bloques perfil y rendimiento
-    ang_perfil_mid = np.mean(angles[:idx_div])
-    ang_rend_mid = np.mean(angles[idx_div:])
-
-    def label_on_angle(angle, text, y=110):
-        angle = angle % (2 * np.pi)
-        ha = "center"
-        if 0 < angle < np.pi:
-            ha = "left"
-        elif np.pi < angle < 2*np.pi:
-            ha = "right"
-        ax.text(angle, y, text, fontsize=14, fontweight='bold', color="#f39c12", ha=ha, va='center', alpha=0.8,
-                path_effects=[path_effects.withStroke(linewidth=3, foreground="white")])
-
-    label_on_angle(ang_perfil_mid, "Perfil")
-    label_on_angle(ang_rend_mid, "Rendimiento")
-
-    # Plot jugador 1 (relleno con degradado sutil)
-    line1 = ax.plot(angles, valores_1, color="#0077b6", linewidth=3.5, zorder=5, label=jugadora_1)
-    ax.fill(angles, valores_1, color="#00b4d8", alpha=0.35, zorder=4)
-
-    # Puntos con borde blanco para más definición
-    ax.scatter(angles, valores_1, color="#00b4d8", edgecolor='white', s=100, zorder=6)
-
-    # Plot jugador 2
-    line2 = ax.plot(angles, valores_2, color=color_2, linewidth=2.7, linestyle=linestyle_2, zorder=7, label=nombre_2)
-    ax.fill(angles, valores_2, color=color_2, alpha=0.25, zorder=6)
-    ax.scatter(angles, valores_2, color=color_2, edgecolor='white', s=80, zorder=8)
-
-    # Ajustes de etiquetas y estilo
+    # Personalizar ticks y etiquetas
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color="#222222")
-    ax.set_yticks([])
+    ax.set_xticklabels([])  # quitamos etiquetas estándar para personalizar con función
+
+    # Añadir etiquetas en ángulo con estilo moderno
+    for angle, label in zip(angles[:-1], labels):
+        label_on_angle(ax, angle, label)
+
+    ax.set_yticklabels([])
+    ax.grid(color="#bfbfbf", linestyle="dashed", linewidth=0.8)
     ax.spines['polar'].set_visible(False)
-    ax.grid(False)
 
-    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=20, fontweight='bold', color="#111111", pad=30)
+    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=20, fontweight='bold', color="#222222", pad=30)
 
-    ax.legend(loc='upper right', bbox_to_anchor=(1.12, 1.15), fontsize=12, frameon=False)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12, frameon=False)
 
     st.pyplot(fig)
 
-    st.markdown("_El radar muestra una comparación visual clara entre perfil y rendimiento._")
-    st.markdown("_La línea naranja divide las variables de perfil y rendimiento._")
-    st.markdown("_Valores normalizados entre 0 y 100._")
+    st.markdown("_El bloque azul representa variables de perfil; el bloque amarillo variables de rendimiento avanzado._")
+    st.markdown("_Valores normalizados (0-100)._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
