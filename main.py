@@ -47,21 +47,22 @@ ligas_dict = {
     "Liga Lituana LKL": "datos/estadisticas_lkl_2025.csv"
 }
 
-
 st.sidebar.title("Configuración")
 
-# Selección de ligas para cargar
 ligas_seleccionadas = st.sidebar.multiselect(
-    "Selecciona una o más ligas",
+    "Selecciona un máximo de 5 ligas",
     options=list(ligas_dict.keys()),
-    default=list(ligas_dict.keys())
+    default=list(ligas_dict.keys())[:2]
 )
 
-if not ligas_seleccionadas:
-    st.warning("Selecciona al menos una liga para continuar.")
+if len(ligas_seleccionadas) > 5:
+    st.sidebar.error("⚠️ Puedes seleccionar máximo 5 ligas. Por favor, deselecciona algunas.")
     st.stop()
 
-# Cargar datos de ligas seleccionadas
+if not ligas_seleccionadas:
+    st.sidebar.warning("Selecciona al menos una liga para continuar.")
+    st.stop()
+
 dfs_ligas = []
 for liga in ligas_seleccionadas:
     df_liga = cargar_datos(ligas_dict[liga])
@@ -69,7 +70,6 @@ for liga in ligas_seleccionadas:
     dfs_ligas.append(df_liga)
 
 df = pd.concat(dfs_ligas, ignore_index=True)
-
 
 # --- FILTROS ---
 if "posiciones" not in st.session_state:
