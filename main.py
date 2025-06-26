@@ -579,10 +579,14 @@ with tabs[7]:
     size_vars = df_clustered.select_dtypes(include=['number']).columns.tolist()
     size_var = st.selectbox("Variable para tamaño (numérica)", ["Ninguna"] + size_vars, index=0)
 
+    # Nueva selección para forma de marcador
+    categorical_vars = df_clustered.select_dtypes(include=['object', 'category']).columns.tolist()
+    shape_var = st.selectbox("Variable para forma (categórica)", ["Ninguna"] + categorical_vars, index=0)
+
     color_arg = df_scatter[color_var] if color_var != "Ninguna" else None
     size_arg = df_scatter[size_var] if size_var != "Ninguna" else None
+    shape_arg = df_scatter[shape_var] if shape_var != "Ninguna" else None
 
-    # NUEVO: Checkboxes para escala logarítmica
     log_x = st.checkbox("Escala logarítmica eje X", value=False)
     log_y = st.checkbox("Escala logarítmica eje Y", value=False)
 
@@ -592,6 +596,7 @@ with tabs[7]:
         y=var_y,
         color=color_arg,
         size=size_arg,
+        symbol=shape_arg,
         hover_data=['Player', 'Team_completo', 'Pos'],
         title=f"Scatter Plot de {var_x} vs {var_y}",
         color_discrete_sequence=px.colors.qualitative.Set1,
@@ -608,5 +613,3 @@ with tabs[7]:
     if st.button("Descargar gráfico como PNG"):
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
-
-
