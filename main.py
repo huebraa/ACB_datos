@@ -334,18 +334,13 @@ with tabs[5]:
         fig, ax = plt.subplots(figsize=(10, 8))
         sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
         st.pyplot(fig)
+        
 # TAB 7: Scouting Report
 with tabs[6]:
 
 
-
-    # Variables que usas para perfil (ejemplo)
-    vars_perfil = vars_seleccionadas  # ya definidas en tu código
-
-    # Variables de rendimiento avanzado a añadir
+    vars_perfil = vars_seleccionadas
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
-
-    # Unión de variables para el radar
     vars_todas = vars_perfil + vars_rendimiento
 
     def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
@@ -356,7 +351,6 @@ with tabs[6]:
         st.markdown("### 🏀 Informe de Fortalezas y Debilidades")
 
         col1, col2 = st.columns(2)
-
         with col1:
             st.markdown("#### 🟢 Fortalezas")
             if fortalezas:
@@ -365,7 +359,6 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("✅ Perfil equilibrado sin áreas sobresalientes.")
-
         with col2:
             st.markdown("#### 🔴 Debilidades")
             if debilidades:
@@ -374,29 +367,6 @@ with tabs[6]:
                     st.progress(pct / 100)
             else:
                 st.markdown("🟢 Sin áreas críticas de mejora detectadas.")
-
-    def radar_spider_heatmap(valores_1, vars_todas, jugador_1):
-        n = len(vars_todas)
-        angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-
-        fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))
-        fig.patch.set_facecolor('white')
-
-        # Dibujar barras circulares coloreadas segun valor normalizado
-        for i, val in enumerate(valores_1):
-            color = plt.cm.viridis(val / 100)  # valor normalizado a [0,1] para colormap
-            ax.bar(angles[i], 1, width=2*np.pi/n, bottom=0, color=color, alpha=0.8, edgecolor='black')
-            # Etiquetas en el borde externo
-            ax.text(angles[i], 1.1, vars_todas[i], ha='center', va='center',
-                    fontsize=10, rotation=np.degrees(angles[i]), rotation_mode='anchor')
-
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        ax.set_ylim(0,1.2)
-        ax.spines['polar'].set_visible(False)
-        ax.set_title(f"Radar Heatmap Circular - {jugador_1}", fontsize=16, fontweight='bold')
-
-        st.pyplot(fig)
 
     st.subheader("🔍 Scouting individual y comparativo")
 
@@ -415,7 +385,6 @@ with tabs[6]:
     cluster = fila_1['Cluster']
     df_posicion = df_clustered[df_clustered['Pos'] == posicion]
 
-    # Normalizar todas las variables juntas (perfil + rendimiento)
     scaler = MinMaxScaler((0, 100))
     normalizados = scaler.fit_transform(df_clustered[vars_todas])
     df_norm = pd.DataFrame(normalizados, columns=vars_todas)
@@ -423,9 +392,94 @@ with tabs[6]:
 
     valores_1 = df_norm[df_norm['Player'] == jugadora_1][vars_todas].values.flatten().tolist()
 
-    # Mostrar radar heatmap solo para jugadora_1 (simplificado)
-    radar_spider_heatmap(valores_1, vars_todas, jugadora_1)
+    if jugadora_2 == "Promedio de su posición":
+        df_pos = df_clustered[df_clustered['Pos'] == posicion]
+        valores_2 = scaler.transform(df_pos[vars_todas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio {posicion}"
+        color_2 = "#888888"
+        linestyle_2 = "dashed"
+    elif jugadora_2 == "Promedio de su cluster":
+        df_clu = df_clustered[df_clustered['Cluster'] == cluster]
+        valores_2 = scaler.transform(df_clu[vars_todas]).mean(axis=0).tolist()
+        nombre_2 = f"Promedio Cluster {cluster}"
+        color_2 = "#cc9900"
+        linestyle_2 = "dotted"
+    else:
+        valores_2 = df_norm[df_norm['Player'] == jugadora_2][vars_todas].values.flatten().tolist()
+        nombre_2 = jugadora_2
+        color_2 = "#cc5c5c"
+        linestyle_2 = "solid"
 
-    # Mostrar scouting visual con barras y columnas (solo perfil para claridad)
+    valores_1 += valores_1[:1]
+    valores_2 += valores_2[:1]
+
+    labels = vars_todas
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor('white')
+
+    # Añadir líneas radiales con menor opacidad y grosor
+    for angle in angles[:-1]:
+        ax.plot([angle, angle], [0, 100], color="#bbb", linewidth=0.8, alpha=0.3, zorder=0)
+
+    # Añadir círculos guía con texto pequeño y elegante
+    grid_values = [25, 50, 75, 100]
+    for gv in grid_values:
+        ax.plot(angles, [gv] * len(angles), color="#bbb", linewidth=0.7, linestyle='dotted', alpha=0.25, zorder=0)
+        ax.text(np.pi/2, gv + 2, f"{gv}", color="#666", fontsize=8, ha='center', va='bottom', alpha=0.6)
+
+    # Divisor visual bloques perfil y rendimiento (líneas radiales en color fuerte)
+    idx_div = len(vars_perfil)
+    ang_div = angles[idx_div]
+    ax.plot([ang_div, ang_div], [0, 100], color="#f39c12", linewidth=2.5, zorder=1)
+
+    # Etiqueta bloques perfil y rendimiento
+    ang_perfil_mid = np.mean(angles[:idx_div])
+    ang_rend_mid = np.mean(angles[idx_div:])
+
+    def label_on_angle(angle, text, y=110):
+        angle = angle % (2 * np.pi)
+        ha = "center"
+        if 0 < angle < np.pi:
+            ha = "left"
+        elif np.pi < angle < 2*np.pi:
+            ha = "right"
+        ax.text(angle, y, text, fontsize=14, fontweight='bold', color="#f39c12", ha=ha, va='center', alpha=0.8,
+                path_effects=[path_effects.withStroke(linewidth=3, foreground="white")])
+
+    label_on_angle(ang_perfil_mid, "Perfil")
+    label_on_angle(ang_rend_mid, "Rendimiento")
+
+    # Plot jugador 1 (relleno con degradado sutil)
+    line1 = ax.plot(angles, valores_1, color="#0077b6", linewidth=3.5, zorder=5, label=jugadora_1)
+    ax.fill(angles, valores_1, color="#00b4d8", alpha=0.35, zorder=4)
+
+    # Puntos con borde blanco para más definición
+    ax.scatter(angles, valores_1, color="#00b4d8", edgecolor='white', s=100, zorder=6)
+
+    # Plot jugador 2
+    line2 = ax.plot(angles, valores_2, color=color_2, linewidth=2.7, linestyle=linestyle_2, zorder=7, label=nombre_2)
+    ax.fill(angles, valores_2, color=color_2, alpha=0.25, zorder=6)
+    ax.scatter(angles, valores_2, color=color_2, edgecolor='white', s=80, zorder=8)
+
+    # Ajustes de etiquetas y estilo
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color="#222222")
+    ax.set_yticks([])
+    ax.spines['polar'].set_visible(False)
+    ax.grid(False)
+
+    ax.set_title(f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento", fontsize=20, fontweight='bold', color="#111111", pad=30)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.12, 1.15), fontsize=12, frameon=False)
+
+    st.pyplot(fig)
+
+    st.markdown("_El radar muestra una comparación visual clara entre perfil y rendimiento._")
+    st.markdown("_La línea naranja divide las variables de perfil y rendimiento._")
+    st.markdown("_Valores normalizados entre 0 y 100._")
+
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
