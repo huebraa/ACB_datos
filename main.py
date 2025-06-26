@@ -549,7 +549,7 @@ with tabs[6]:
             height=600
         )
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 
     st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
