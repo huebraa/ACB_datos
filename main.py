@@ -37,8 +37,16 @@ def cargar_datos(path):
 # Diccionario de rutas de archivos
 ligas_dict = {
     "Liga ACB": "datos/estadisticas_acb_2025.csv",
-    "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
+    "Primera FEB": "datos/estadisticas_primera_feb_2025.csv",
+    "Liga Alemana BBL": "datos/estadisticas_bbl_2025.csv",
+    "Liga Italiana Lega": "datos/estadisticas_lega_2025.csv",
+    "Liga Francesa Jeep Elite": "datos/estadisticas_jeep_elite_2025.csv",
+    "Liga Griega HEBA A1": "datos/estadisticas_heba_2025.csv",
+    "Liga Adriática ABA": "datos/estadisticas_aba_2025.csv",
+    "Liga VTB": "datos/estadisticas_vtb_2025.csv",
+    "Liga Lituana LKL": "datos/estadisticas_lkl_2025.csv"
 }
+
 
 st.sidebar.title("Configuración")
 
