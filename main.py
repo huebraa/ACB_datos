@@ -16,15 +16,30 @@ st.set_page_config(layout="wide", page_title="Perfiles Jugadores")
 
 st.sidebar.title("Configuración")
 
-# --- Selector de Liga ---
+# --- Cargar ambas ligas ---
 ligas = {
     "Liga ACB": "datos/estadisticas_acb_2025.csv",
     "Primera FEB": "datos/estadisticas_primera_feb_2025.csv"
 }
 
+df_acb = cargar_datos(ligas["Liga ACB"])
+df_acb["Liga"] = "ACB"
 
-liga_seleccionada = st.sidebar.selectbox("Selecciona la liga", list(ligas.keys()))
-ruta_csv = ligas[liga_seleccionada]
+df_feb = cargar_datos(ligas["Primera FEB"])
+df_feb["Liga"] = "Primera FEB"
+
+# Combinar ambos datasets
+df = pd.concat([df_acb, df_feb], ignore_index=True)
+
+# --- Filtro opcional por liga ---
+ligas_filtradas = st.sidebar.multiselect(
+    "Filtrar por liga",
+    options=df['Liga'].unique(),
+    default=df['Liga'].unique()
+)
+
+df = df[df['Liga'].isin(ligas_filtradas)]
+
 
 # --- CARGA DATOS ---
 @st.cache_data(show_spinner=False)
