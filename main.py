@@ -173,7 +173,7 @@ df_clustered['PCA2'] = X_pca[:, 1]
 
 
 
-def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
+def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=0.3):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
         return "Cluster vacío"
