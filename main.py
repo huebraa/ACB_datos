@@ -171,16 +171,14 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-# --- Función para describir clusters ---
-def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
+def etiquetar_y_prototipar_cluster(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
-        return "Cluster vacío"
+        return {"etiquetas": "Cluster vacío", "arquetipo_principal": None, "prototipos": []}
 
     global_mean = df_total[vars_seleccionadas].mean()
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
-
     z_scores = ((centroid - global_mean) / global_std).sort_values(ascending=False)
 
     etiquetas = []
@@ -221,13 +219,41 @@ def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=
 
     # Si no hay nada destacado
     if not etiquetas:
-        return "Perfil mixto"
+        etiquetas = [("Perfil mixto", 0)]
 
-    # Ordenar por impacto (z-score alto)
+    # Ordenar por impacto
     etiquetas.sort(key=lambda x: x[1], reverse=True)
-    etiquetas_finales = [e[0] for e in etiquetas[:3]]  # Limita a 3 principales
+    etiquetas_finales = [e[0] for e in etiquetas[:3]]
 
-    return ", ".join(etiquetas_finales)
+    # Arquetipo principal = más destacado
+    arquetipo_principal = etiquetas_finales[0]
+
+    # Diccionario de prototipos
+    arquetipos_prototipos = {
+        "Playmaker": ["Tyrese Haliburton", "Ricky Rubio"],
+        "Finalizador": ["Zach LaVine", "Anthony Edwards"],
+        "Tirador": ["Klay Thompson", "Buddy Hield"],
+        "Slasher": ["DeMar DeRozan", "RJ Barrett"],
+        "Protector del aro": ["Jaren Jackson Jr.", "Walker Kessler"],
+        "Ladrón": ["Matisse Thybulle", "Alex Caruso"],
+        "3&D": ["OG Anunoby", "Dorian Finney-Smith"],
+        "Reboteador": ["Clint Capela", "Andre Drummond"],
+        "Dominante en rebote": ["Steven Adams", "Domantas Sabonis"],
+        "Reboteador ofensivo": ["Mitchell Robinson", "Kenneth Faried"],
+        "Reboteador defensivo": ["Brook Lopez", "Rudy Gobert"],
+        "Creador eficiente": ["Chris Paul", "Monte Morris"],
+        "Cuida el balón": ["Malcolm Brogdon", "Tyus Jones"],
+        "Perfil mixto": ["Bruce Brown", "Josh Hart"]
+    }
+
+    prototipos = arquetipos_prototipos.get(arquetipo_principal, [])
+
+    return {
+        "etiquetas": etiquetas_finales,
+        "arquetipo_principal": arquetipo_principal,
+        "prototipos": prototipos
+    }
+
 
 
 # --- Visualizaciones y tabs ---
