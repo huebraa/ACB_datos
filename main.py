@@ -62,6 +62,7 @@ for liga in ligas_seleccionadas:
 
 df = pd.concat(dfs_ligas, ignore_index=True)
 
+
 # --- FILTROS ---
 if "posiciones" not in st.session_state:
     st.session_state.posiciones = []
@@ -260,7 +261,8 @@ tabs = st.tabs([
     "📏 Diferentes",
     "🎯 Similares",
     "🔥 Correlaciones",
-    "📝 Scouting Report"
+    "📝 Scouting Report",
+    "📉 Scatter Plot"   # Nueva tab
 ])
 
 # TAB 1: Clusters
@@ -549,3 +551,30 @@ with tabs[6]:
     st.markdown("_Valores normalizados de 0 a 100._")
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
+
+# NUEVA TAB 8: Scatter Plot (tabs[7])
+with tabs[7]:
+    st.subheader("Scatter Plot personalizado")
+
+    # Selección variables eje X e Y
+    var_x = st.selectbox("Variable eje X", options=variables, index=0)
+    var_y = st.selectbox("Variable eje Y", options=variables, index=1)
+
+    # Filtro adicional para clusters (opcional)
+    clusters_unicos = sorted(df_clustered['Cluster'].unique())
+    cluster_filter = st.multiselect("Filtrar por clusters", options=clusters_unicos, default=clusters_unicos)
+
+    df_scatter = df_clustered[df_clustered['Cluster'].isin(cluster_filter)]
+
+    fig = px.scatter(
+        df_scatter,
+        x=var_x,
+        y=var_y,
+        color=df_scatter['Cluster'].astype(str),
+        hover_data=['Player', 'Team_completo', 'Pos'],
+        title=f"Scatter Plot de {var_x} vs {var_y}",
+        color_discrete_sequence=px.colors.qualitative.Set1
+    )
+    fig.update_traces(marker=dict(size=10, line=dict(width=1, color='DarkSlateGrey')))
+    fig.update_layout(legend_title_text='Cluster', height=600)
+    st.plotly_chart(fig, use_container_width=True)
