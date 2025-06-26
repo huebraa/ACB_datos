@@ -171,14 +171,17 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-def etiquetar_y_prototipar_cluster(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
+
+# --- Función para describir clusters ---
+def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
-        return {"etiquetas": "Cluster vacío", "arquetipo_principal": None, "prototipos": []}
+        return "Cluster vacío"
 
     global_mean = df_total[vars_seleccionadas].mean()
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
+
     z_scores = ((centroid - global_mean) / global_std).sort_values(ascending=False)
 
     etiquetas = []
@@ -204,29 +207,28 @@ def etiquetar_y_prototipar_cluster(df_total, cluster_id, vars_seleccionadas, umb
     # Rebounding
     if z_scores.get('TRB%', 0) > umbral:
         etiquetas.append(("Reboteador", z_scores['TRB%']))
+    if z_scores.get('ORB%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
+        etiquetas.append(("Dominante en rebote", z_scores['ORB%'] + z_scores['DRB%']))
+    elif z_scores.get('ORB%', 0) > umbral:
+        etiquetas.append(("Reboteador ofensivo", z_scores['ORB%']))
+    elif z_scores.get('DRB%', 0) > umbral:
+        etiquetas.append(("Reboteador defensivo", z_scores['DRB%']))
 
+    # Eficiencia
+    if z_scores.get('Ast/TO', 0) > umbral:
+        etiquetas.append(("Creador eficiente", z_scores['Ast/TO']))
+    if z_scores.get('TOV%', 0) < -umbral:
+        etiquetas.append(("Cuida el balón", -z_scores['TOV%']))
+
+    # Si no hay nada destacado
     if not etiquetas:
-        etiquetas.append(("Generalista", 0))
+        return "Perfil mixto"
 
+    # Ordenar por impacto (z-score alto)
     etiquetas.sort(key=lambda x: x[1], reverse=True)
+    etiquetas_finales = [e[0] for e in etiquetas[:3]]  # Limita a 3 principales
 
-    arquetipo_principal = etiquetas[0][0]
-
-    # Encontrar prototipos (jugadores más representativos del cluster)
-    def calcular_similitud_jugador(jugador):
-        jugador_valores = jugador[vars_seleccionadas].values
-        distancia = np.linalg.norm(scaler.transform([jugador_valores]) - kmeans.cluster_centers_[cluster_id])
-        return distancia
-
-    cluster_jugadores = df_total[df_total['Cluster'] == cluster_id]
-    cluster_jugadores['Distancia'] = cluster_jugadores.apply(calcular_similitud_jugador, axis=1)
-    prototipos = cluster_jugadores.nsmallest(5, 'Distancia')
-
-    return {
-        "etiquetas": [e[0] for e in etiquetas],
-        "arquetipo_principal": arquetipo_principal,
-        "prototipos": prototipos
-    }
+    return ", ".join(etiquetas_finales)
 
 
 
