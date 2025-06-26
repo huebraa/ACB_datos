@@ -561,6 +561,28 @@ with tabs[6]:
 
     st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
     st.markdown("_Valores normalizados de 0 a 100._")
+    
+    # Explicaciones sencillas de las stats de rendimiento
+    st.markdown("### 📚 Explicación sencilla de las estadísticas de rendimiento")
+    
+    explicaciones_rendimiento = {
+        "ORtg": "Puntos que un jugador/a ayuda a su equipo a anotar por cada 100 jugadas. Más es mejor. 🏀",
+        "DRtg": "Puntos que un jugador/a permite que el equipo contrario anote por cada 100 jugadas. Menos es mejor. 🛡️",
+        "eDiff": "Diferencia entre puntos a favor y en contra cuando el jugador/a está en cancha. Positivo significa impacto positivo. ⚖️",
+        "FIC": "Cuánto impacto tiene el jugador/a en el juego cuando está en la cancha. Más alto, mayor influencia. 🌟",
+        "PER": "Nota general de eficiencia en el juego. Cuanto más alto, mejor rendimiento. 📈",
+        "OWS": "Contribución del jugador/a a las victorias del equipo con su ataque. ⚔️",
+        "DWS": "Contribución del jugador/a a las victorias del equipo con su defensa. 🛡️",
+        "WS": "Contribución total del jugador/a a las victorias del equipo. 🏆"
+    }
+    
+    for var in vars_rendimiento:
+        desc = explicaciones_rendimiento.get(var, "Esta estadística mide algo importante sobre el jugador/a.")
+        st.markdown(f"**{var}**: {desc}")
+    
+    # Luego muestras el scouting con fortalezas y debilidades
+    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
+
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
