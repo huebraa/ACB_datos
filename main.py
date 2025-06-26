@@ -250,6 +250,8 @@ with tabs[0]:
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
     resumen['Etiqueta'] = [describir_cluster_mejorado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
+    df_clustered['PerfilJugador'] = df_clustered['Jugador'] + " — " + df_clustered['ClusterEtiqueta']
+
 
 
     st.dataframe(resumen)
