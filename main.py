@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 import plotly.graph_objects as go
-
 from matplotlib.colors import to_hex
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -172,7 +171,8 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-# --- Función para describir clusters ---
+
+
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
@@ -185,61 +185,67 @@ def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=
     # Calcular z-scores del centroide respecto global
     z_scores = (centroid - global_mean) / global_std
 
-    # Percentiles para algunas variables que no tienen sentido con z-score (como volumen de triples)
+    # Percentiles para algunas variables específicas
     percentiles = {var: percentileofscore(df_total[var].dropna(), centroid[var]) for var in ['3PA', 'TOV%'] if var in df_total.columns}
 
     etiquetas = []
 
-    # Regla Playmaker
-    if z_scores.get('AST%', 0) > umbral and z_scores.get('Ast/TO', 0) > 0:
+    # Playmaker / Facilitador
+    if z_scores.get('AST%', 0) > umbral and z_scores.get('Ast/TO', 0) > 0.5:
         etiquetas.append("Playmaker")
 
-    # Tirador especialista
+    # Scorer / Tirador especialista
     if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) > 50:
         etiquetas.append("Tirador")
 
-    # Interior Defensor
+    # Slasher / Atacante a canasta
+    if (z_scores.get('FG%', 0) > umbral and
+        z_scores.get('USG%', 0) > umbral and
+        z_scores.get('TOV%', 0) < 0):  # menos turnovers que la media
+        etiquetas.append("Slasher")
+
+    # Interior Defensor / Big man tradicional
     if z_scores.get('BLK%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
         etiquetas.append("Interior Defensor")
 
-    # 3&D
-    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > umbral:
-        etiquetas.append("3&D")
-
-    # Slasher
-    if (z_scores.get('FG%', 0) > umbral and
-        z_scores.get('USG%', 0) > umbral and
-        z_scores.get('TOV%', 0) < umbral):
-        etiquetas.append("Slasher")
-
-    # Reboteador puro
+    # Rebotador puro
     if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
         etiquetas.append("Reboteador Puro")
+
+    # 3&D (Tirador y defensor)
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > umbral:
+        etiquetas.append("3&D")
 
     # Defensor versátil
     if z_scores.get('STL%', 0) > umbral and z_scores.get('BLK%', 0) > 0.5*umbral:
         etiquetas.append("Defensor Versátil")
 
-    # Tirador de media distancia
+    # Tirador de media distancia (alta FG%, baja 3P%)
     if (z_scores.get('FG%', 0) > umbral and
         z_scores.get('3P%', 0) < umbral and
         z_scores.get('USG%', 0) > umbral):
         etiquetas.append("Tirador de Media")
 
-    # Tirador selectivo
+    # Tirador selectivo (alta 3P% pero bajo volumen)
     if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) < 50:
         etiquetas.append("Tirador Selectivo")
 
-    # Eficiente general
-    if z_scores.get('TS%', 0) > umbral and z_scores.get('TOV%', 0) < umbral:
+    # Eficiente general (TS% alto y bajo turnover)
+    if z_scores.get('TS%', 0) > umbral and z_scores.get('TOV%', 0) < 0:
         etiquetas.append("Eficiente")
 
-    # Generador de juego de alto volumen
+    # Generador de juego de alto volumen (AST% alto y USG% alto)
     if z_scores.get('AST%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
         etiquetas.append("Generador de Juego")
 
+    # Facilitador secundario (AST% moderado, USG% moderado)
+    if 0.5 < z_scores.get('AST%', 0) <= umbral and 0.5 < z_scores.get('USG%', 0) <= umbral:
+        etiquetas.append("Facilitador Secundario")
+
+    # Jugador "Glue" / Complemento (stats balanceados, sin grandes extremos)
+    # Aquí un criterio para perfil mixto
     if not etiquetas:
-        return "Perfil Mixto"
+        etiquetas.append("Perfil Mixto")
 
     return ", ".join(etiquetas)
 
