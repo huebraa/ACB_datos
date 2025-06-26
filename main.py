@@ -143,9 +143,7 @@ mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Desarrollado por Asier Huebra Aguinaga @MrLopez_24 ( • Datos de RealGM  https://basketball.realgm.com/
-⚠️ Esta herramienta tiene fines informativos. Los datos pueden contener errores o estar desactualizados.
-""")")
+st.sidebar.caption("Desarrollado por Asier Huebra Aguinaga @MrLopez_24 (https://x.com/MrLopez_24) • Datos de RealGM  https://basketball.realgm.com/)
 
 
 # --- Preprocesamiento ---
@@ -632,17 +630,4 @@ with tabs[7]:
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
 
-
-st.code("""
-Aplicación para análisis de jugadores FIBA.
-
-📊 Estadísticas recopiladas desde RealGM (https://basketball.realgm.com/)
-🛠️ Creada con Streamlit
-
-Autor: Asier Huebra Aguinaga
-Contacto: 
-Twitter: @MrLopez_24 (https://x.com/MrLopez_24)
-
-⚠️ Esta herramienta tiene fines informativos. Los datos pueden contener errores o estar desactualizados.
-""")
 
