@@ -629,3 +629,31 @@ with tabs[7]:
     if st.button("Descargar gráfico como PNG"):
         img_bytes = fig.to_image(format="png")
         st.download_button(label="Descargar PNG", data=img_bytes, file_name="scatter_plot.png", mime="image/png")
+
+
+st.markdown("---")
+
+st.markdown("""
+### ℹ️ Sobre esta aplicación
+
+Esta herramienta tiene como objetivo facilitar el análisis de jugadores FIBA para scouting, fichajes y desarrollo.  
+Pensada para aficionados, clubes, agentes, entrenadores y analistas que deseen una visualización rápida basada en estadísticas avanzadas.
+
+---
+**📊 Datos:**  
+Los datos mostrados en esta app provienen de [RealGM](https://basketball.realgm.com/) y han sido limpiados y procesados manualmente para su visualización.  
+Última actualización: **junio 2025**
+
+---
+**👨‍💻 Desarrollador:**  
+Esta app ha sido desarrollada por Asier Huebra Aguinaga como proyecto personal y de exploración analítica.  
+
+✉️ Contacto / feedback:
+🐦 Twitter / X: [MrLopez_24](https://x.com/MrLopez_24)
+
+---
+⚠️ *Disclaimer:* Esta herramienta es orientativa y no representa asesoramiento profesional.  
+Las estadísticas pueden contener errores o estar desactualizadas. Usa esta información bajo tu propio criterio.
+
+""")
+
