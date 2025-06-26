@@ -174,39 +174,29 @@ df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
 # --- Función para describir clusters ---
-def perfil_jugador_detallado(df, cluster_id, vars_seleccionadas, umbral=0.5):
-    cluster_data = df[df['Cluster'] == cluster_id]
+def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=0.5):
+    cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
         return "Cluster vacío"
 
-    global_mean = df[vars_seleccionadas].mean()
-    global_std = df[vars_seleccionadas].std()
+    global_mean = df_total[vars_seleccionadas].mean()
+    global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
 
     z_scores = (centroid - global_mean) / global_std
 
     etiquetas = []
 
-    if z_scores.get('PTS', 0) > umbral:
-        etiquetas.append("Anotador")
     if z_scores.get('AST%', 0) > umbral:
         etiquetas.append("Playmaker")
-    if z_scores.get('3P%', 0) > umbral and z_scores.get('FG%', 0) > umbral:
+    if z_scores.get('3P%', 0) > umbral:
         etiquetas.append("Tirador")
+    if z_scores.get('BLK%', 0) > umbral or z_scores.get('STL%', 0) > umbral:
+        etiquetas.append("Defensor")
+    if z_scores.get('3P%', 0) < -umbral:
+        etiquetas.append("Interior")
     if z_scores.get('REB%', 0) > umbral:
         etiquetas.append("Rebotador")
-    if z_scores.get('BLK%', 0) > umbral:
-        etiquetas.append("Defensor de aro")
-    if z_scores.get('STL%', 0) > umbral:
-        etiquetas.append("Defensor activo")
-    if z_scores.get('USG%', 0) > umbral:
-        etiquetas.append("Líder ofensivo")
-    if z_scores.get('FG%', 0) > umbral and z_scores.get('TOV%', 0) < -umbral:
-        etiquetas.append("Eficiente")
-    if z_scores.get('FT%', 0) > umbral:
-        etiquetas.append("Tirador de libres")
-    if z_scores.get('3P%', 0) < -umbral and z_scores.get('REB%', 0) > umbral:
-        etiquetas.append("Interior")
 
     if not etiquetas:
         return "Mixto"
