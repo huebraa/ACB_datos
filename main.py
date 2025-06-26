@@ -340,11 +340,8 @@ with tabs[6]:
 
     vars_perfil = vars_seleccionadas
     vars_rendimiento = ['ORtg', 'DRtg', 'eDiff', 'FIC', 'PER', 'OWS', 'DWS', 'WS']
-
-    # Normalizar variables juntas
     vars_todas = vars_perfil + vars_rendimiento
 
-    # Función scouting (igual que antes)
     def mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_seleccionadas):
         percentiles = {var: percentileofscore(df_posicion[var].dropna(), fila_1[var]) for var in vars_seleccionadas}
         fortalezas = [(var, int(pct)) for var, pct in percentiles.items() if pct >= 75]
@@ -418,25 +415,47 @@ with tabs[6]:
     angles_perfil = np.linspace(0, 2*np.pi, n_vars_perfil, endpoint=False)
     angles_rend = np.linspace(0, 2*np.pi, n_vars_rend, endpoint=False)
 
-    width = 2*np.pi / max(n_vars_perfil, n_vars_rend) * 0.8  # ancho barra
+    width = 2*np.pi / max(n_vars_perfil, n_vars_rend) * 0.7  # ancho barra más estrecho
+
+    # Radios base para anillos
+    base_interior = 0.25
+    base_exterior = 0.65
+    max_height = 0.35  # altura máxima barras
 
     # Barras anillo interior (perfil)
-    bars1 = ax.bar(angles_perfil, valores_1[:n_vars_perfil], width=width, bottom=0.15, color="#1f77b4", alpha=0.8, edgecolor='k', label=jugadora_1)
-    bars2 = ax.bar(angles_perfil, valores_2[:n_vars_perfil], width=width, bottom=0.15, color="#ff7f0e", alpha=0.4, edgecolor='k', label=nombre_2)
+    bars1 = ax.bar(angles_perfil, valores_1[:n_vars_perfil]*max_height, width=width, bottom=base_interior,
+                   color="#1f77b4", alpha=0.85, edgecolor='black', linewidth=0.8, label=jugadora_1)
+    bars2 = ax.bar(angles_perfil, valores_2[:n_vars_perfil]*max_height, width=width, bottom=base_interior,
+                   color="#ff7f0e", alpha=0.4, edgecolor='black', linewidth=0.8, label=nombre_2)
 
     # Barras anillo exterior (rendimiento)
-    bars3 = ax.bar(angles_rend, valores_1[n_vars_perfil:], width=width, bottom=0.6, color="#2ca02c", alpha=0.8, edgecolor='k')
-    bars4 = ax.bar(angles_rend, valores_2[n_vars_perfil:], width=width, bottom=0.6, color="#d62728", alpha=0.4, edgecolor='k')
+    bars3 = ax.bar(angles_rend, valores_1[n_vars_perfil:]*max_height, width=width, bottom=base_exterior,
+                   color="#2ca02c", alpha=0.85, edgecolor='black', linewidth=0.8)
+    bars4 = ax.bar(angles_rend, valores_2[n_vars_perfil:]*max_height, width=width, bottom=base_exterior,
+                   color="#d62728", alpha=0.4, edgecolor='black', linewidth=0.8)
 
-    # Etiquetas perfil fuera anillo
-    for angle, label in zip(angles_perfil, vars_perfil):
-        ax.text(angle, 0.15 - 0.1, label, ha='center', va='center', fontsize=12, fontweight='bold', color="#1f77b4", rotation=np.degrees(angle)-90, rotation_mode='anchor')
+    # Función para dibujar líneas guía y etiquetas
+    def draw_labels(angles, labels, base, height, color):
+        for angle, label in zip(angles, labels):
+            # Posición etiqueta afuera del círculo + pequeña línea guía
+            x_text = (base + height + 0.07) * np.cos(angle)
+            y_text = (base + height + 0.07) * np.sin(angle)
+            x_line = (base + height) * np.cos(angle)
+            y_line = (base + height) * np.sin(angle)
 
-    # Etiquetas rendimiento fuera anillo exterior
-    for angle, label in zip(angles_rend, vars_rendimiento):
-        ax.text(angle, 1.2, label, ha='center', va='center', fontsize=12, fontweight='bold', color="#2ca02c", rotation=np.degrees(angle)-90, rotation_mode='anchor')
+            ax.plot([x_line, x_text], [y_line, y_text], color=color, lw=1)
+            rotation = np.degrees(angle)
+            align = 'left'
+            if rotation > 90 and rotation < 270:
+                rotation += 180
+                align = 'right'
+            ax.text(x_text, y_text, label, color=color, fontsize=12, fontweight='bold',
+                    rotation=rotation, rotation_mode='anchor', ha=align, va='center')
 
-    ax.set_ylim(0,1.1)
+    draw_labels(angles_perfil, vars_perfil, base_interior, max_height, "#1f77b4")
+    draw_labels(angles_rend, vars_rendimiento, base_exterior, max_height, "#2ca02c")
+
+    ax.set_ylim(0, 1.3)
     ax.set_yticklabels([])
     ax.set_xticklabels([])
     ax.grid(False)
@@ -444,11 +463,9 @@ with tabs[6]:
 
     ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1.15), fontsize=12)
 
-    ax.set_title(f"Radar de barras radiales - {jugadora_1} vs {nombre_2}", fontsize=18, fontweight='bold', color="#333")
+    ax.set_title(f"Radar de barras radiales - {jugadora_1} vs {nombre_2}", fontsize=18, fontweight='bold', color="#333", pad=20)
 
     st.pyplot(fig)
-
-    mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
     mostrar_scouting_dos_columnas(fila_1, df_posicion, vars_perfil)
 
