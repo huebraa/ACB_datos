@@ -143,7 +143,9 @@ mostrar_similares = st.sidebar.checkbox("Mostrar Jugadores Similares", True, key
 mostrar_corr = st.sidebar.checkbox("Mostrar Correlaciones", True, key="mostrar_corr")
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Desarrollado por Asier Huebra Aguinaga @MrLopez_24 • Datos de RealGM  https://basketball.realgm.com/")
+st.sidebar.caption("Desarrollado por Asier Huebra Aguinaga @MrLopez_24 ( • Datos de RealGM  https://basketball.realgm.com/
+⚠️ Esta herramienta tiene fines informativos. Los datos pueden contener errores o estar desactualizados.
+""")")
 
 
 # --- Preprocesamiento ---
