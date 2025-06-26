@@ -334,12 +334,6 @@ with tabs[5]:
         st.pyplot(fig)
 # TAB 7: Scouting Report
 with tabs[6]:
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
-    from sklearn.preprocessing import MinMaxScaler
-    from scipy.stats import percentileofscore
-    import streamlit as st
 
     # Variables que usas para perfil (ejemplo)
     vars_perfil = vars_seleccionadas  # las que ya tienes definidas en tu código
