@@ -476,88 +476,81 @@ with tabs[6]:
         color_2 = "firebrick"
         dash_2 = 'solid'
 
-    # Cerrar el radar
-    valores_1 += valores_1[:1]
-    valores_2 += valores_2[:1]
-    labels = vars_todas + vars_todas[:1]
-
-    # Crear radar con Plotly
-    fig = go.Figure()
-
-    # Bloque perfil
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1[:len(vars_perfil)+1],
-        theta=labels[:len(vars_perfil)+1],
-        fill='toself',
-        name=jugadora_1 + " - Perfil",
-        line=dict(color='#006699', width=3),
-        fillcolor='rgba(0,102,153,0.3)',
-        hoverinfo='all'
-    ))
-
-    # Bloque rendimiento
-    fig.add_trace(go.Scatterpolar(
-        r=valores_1[len(vars_perfil):],
-        theta=labels[len(vars_perfil):],
-        fill='toself',
-        name=jugadora_1 + " - Rendimiento",
-        line=dict(color='#ffa500', width=3),
-        fillcolor='rgba(255,165,0,0.3)',
-        hoverinfo='all'
-    ))
-
-    # Comparativa jugador 2 - perfil
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2[:len(vars_perfil)+1],
-        theta=labels[:len(vars_perfil)+1],
-        fill='toself',
-        name=nombre_2 + " - Perfil",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(128,128,128,0.2)' if dash_2 == 'dash' else 'rgba(255,165,0,0.15)',
-        hoverinfo='all'
-    ))
-
-    # Comparativa jugador 2 - rendimiento
-    fig.add_trace(go.Scatterpolar(
-        r=valores_2[len(vars_perfil):],
-        theta=labels[len(vars_perfil):],
-        fill='toself',
-        name=nombre_2 + " - Rendimiento",
-        line=dict(color=color_2, width=2, dash=dash_2),
-        fillcolor='rgba(255,165,0,0.15)',
-        hoverinfo='all'
-    ))
-
-    fig.update_layout(
-        polar=dict(
-            bgcolor="#f9f9f9",
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100],
-                tickvals=[0, 25, 50, 75, 100],
-                ticktext=["0", "25", "50", "75", "100"],
-                gridcolor="lightgray",
-                gridwidth=1
+   # ⚙️ Preparamos etiquetas y valores extendidos
+        labels_perfil = vars_perfil + [vars_perfil[0]]
+        labels_rend = vars_rendimiento + [vars_rendimiento[0]]
+        
+        valores_1_perfil = valores_1[:len(vars_perfil)] + [valores_1[0]]
+        valores_1_rend = valores_1[len(vars_perfil):] + [valores_1[len(vars_perfil)]]
+        
+        valores_2_perfil = valores_2[:len(vars_perfil)] + [valores_2[0]]
+        valores_2_rend = valores_2[len(vars_perfil):] + [valores_2[len(vars_perfil)]]
+        
+        # 🎯 Creamos figura
+        fig = go.Figure()
+        
+        # 🔵 Perfil jugadora 1
+        fig.add_trace(go.Scatterpolar(
+            r=valores_1_perfil,
+            theta=labels_perfil,
+            fill='toself',
+            name=f"{jugadora_1} - Perfil",
+            line=dict(color='#1f77b4', width=3),
+            fillcolor='rgba(31, 119, 180, 0.2)'
+        ))
+        
+        # 🟠 Rendimiento jugadora 1
+        fig.add_trace(go.Scatterpolar(
+            r=valores_1_rend,
+            theta=labels_rend,
+            fill='toself',
+            name=f"{jugadora_1} - Rendimiento",
+            line=dict(color='#ff7f0e', width=3),
+            fillcolor='rgba(255, 127, 14, 0.2)'
+        ))
+        
+        # ⚪ Perfil comparado
+        fig.add_trace(go.Scatterpolar(
+            r=valores_2_perfil,
+            theta=labels_perfil,
+            fill='toself',
+            name=f"{nombre_2} - Perfil",
+            line=dict(color=color_2, width=2, dash=dash_2),
+            fillcolor='rgba(128,128,128,0.15)' if dash_2 != 'solid' else 'rgba(255,165,0,0.15)'
+        ))
+        
+        # 🔴 Rendimiento comparado
+        fig.add_trace(go.Scatterpolar(
+            r=valores_2_rend,
+            theta=labels_rend,
+            fill='toself',
+            name=f"{nombre_2} - Rendimiento",
+            line=dict(color=color_2, width=2, dash=dash_2),
+            fillcolor='rgba(255,165,0,0.1)'
+        ))
+        
+        # 🎨 Layout mejorado
+        fig.update_layout(
+            title=dict(text=f"{jugadora_1} vs {nombre_2}", x=0.5, font=dict(size=20)),
+            polar=dict(
+                bgcolor="#ffffff",
+                radialaxis=dict(visible=True, range=[0, 100], tickvals=[0, 25, 50, 75, 100], tickfont=dict(size=10)),
+                angularaxis=dict(tickfont=dict(size=11))
             ),
-            angularaxis=dict(
-                tickfont=dict(size=10, color="black", family="Arial Black"),
-            )
-        ),
-        legend=dict(
-            title="Leyenda",
-            font=dict(size=12),
-            bgcolor="white",
-            bordercolor="black",
-            borderwidth=1,
-            x=1.1,
-            y=1
-        ),
-        margin=dict(t=50, b=50, l=50, r=150),
-        title=f"{jugadora_1} vs {nombre_2} - Perfil y Rendimiento",
-        title_font_size=18
-    )
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=11)
+            ),
+            margin=dict(l=30, r=30, t=60, b=60),
+            height=600
+        )
 
-    st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
+
 
     st.markdown("_El radar está dividido en dos bloques: **Perfil** (azul) y **Rendimiento** (naranja)._")
     st.markdown("_Valores normalizados de 0 a 100._")
