@@ -174,85 +174,73 @@ df_clustered['PCA2'] = X_pca[:, 1]
 def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
-        return {"etiquetas": "Cluster vacío", "arquetipo_principal": None, "prototipos": []}
+        return "Cluster vacío"
 
     global_mean = df_total[vars_seleccionadas].mean()
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
-    z_scores = ((centroid - global_mean) / global_std).sort_values(ascending=False)
+
+    # Calcular z-scores del centroide respecto global
+    z_scores = (centroid - global_mean) / global_std
+
+    # Percentiles para algunas variables que no tienen sentido con z-score (como volumen de triples)
+    percentiles = {var: percentileofscore(df_total[var].dropna(), centroid[var]) for var in ['3PA', 'TOV%'] if var in df_total.columns}
 
     etiquetas = []
 
-    # Etiquetas ofensivas
-    if z_scores.get('AST%', 0) > umbral:
-        etiquetas.append(("Playmaker", z_scores['AST%']))
-    if z_scores.get('USG%', 0) > umbral and z_scores.get('FG%', 0) > 0:
-        etiquetas.append(("Finalizador", z_scores['USG%']))
-    if z_scores.get('3P%', 0) > umbral or z_scores.get('3PA', 0) > umbral:
-        etiquetas.append(("Tirador", max(z_scores.get('3P%', 0), z_scores.get('3PA', 0))))
-    if z_scores.get('FT/FGA', 0) > umbral and z_scores.get('USG%', 0) > 0:
-        etiquetas.append(("Slasher", z_scores['FT/FGA']))
+    # Regla Playmaker
+    if z_scores.get('AST%', 0) > umbral and z_scores.get('Ast/TO', 0) > 0:
+        etiquetas.append("Playmaker")
 
-    # Etiquetas defensivas
-    if z_scores.get('BLK%', 0) > umbral:
-        etiquetas.append(("Protector del aro", z_scores['BLK%']))
-    if z_scores.get('STL%', 0) > umbral:
-        etiquetas.append(("Ladrón", z_scores['STL%']))
-    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
-        etiquetas.append(("3&D", z_scores['STL%'] + z_scores.get('3P%', 0)))
+    # Tirador especialista
+    if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) > 50:
+        etiquetas.append("Tirador")
 
-    # Rebounding
-    if z_scores.get('TRB%', 0) > umbral:
-        etiquetas.append(("Reboteador", z_scores['TRB%']))
-    if z_scores.get('ORB%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Dominante en rebote", z_scores['ORB%'] + z_scores['DRB%']))
-    elif z_scores.get('ORB%', 0) > umbral:
-        etiquetas.append(("Reboteador ofensivo", z_scores['ORB%']))
-    elif z_scores.get('DRB%', 0) > umbral:
-        etiquetas.append(("Reboteador defensivo", z_scores['DRB%']))
+    # Interior Defensor
+    if z_scores.get('BLK%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
+        etiquetas.append("Interior Defensor")
 
-    # Eficiencia
-    if z_scores.get('Ast/TO', 0) > umbral:
-        etiquetas.append(("Creador eficiente", z_scores['Ast/TO']))
-    if z_scores.get('TOV%', 0) < -umbral:
-        etiquetas.append(("Cuida el balón", -z_scores['TOV%']))
+    # 3&D
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > umbral:
+        etiquetas.append("3&D")
 
-    # Si no hay nada destacado
+    # Slasher
+    if (z_scores.get('FG%', 0) > umbral and
+        z_scores.get('USG%', 0) > umbral and
+        z_scores.get('TOV%', 0) < umbral):
+        etiquetas.append("Slasher")
+
+    # Reboteador puro
+    if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
+        etiquetas.append("Reboteador Puro")
+
+    # Defensor versátil
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('BLK%', 0) > 0.5*umbral:
+        etiquetas.append("Defensor Versátil")
+
+    # Tirador de media distancia
+    if (z_scores.get('FG%', 0) > umbral and
+        z_scores.get('3P%', 0) < umbral and
+        z_scores.get('USG%', 0) > umbral):
+        etiquetas.append("Tirador de Media")
+
+    # Tirador selectivo
+    if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) < 50:
+        etiquetas.append("Tirador Selectivo")
+
+    # Eficiente general
+    if z_scores.get('TS%', 0) > umbral and z_scores.get('TOV%', 0) < umbral:
+        etiquetas.append("Eficiente")
+
+    # Generador de juego de alto volumen
+    if z_scores.get('AST%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
+        etiquetas.append("Generador de Juego")
+
     if not etiquetas:
-        etiquetas = [("Perfil mixto", 0)]
+        return "Perfil Mixto"
 
-    # Ordenar por impacto
-    etiquetas.sort(key=lambda x: x[1], reverse=True)
-    etiquetas_finales = [e[0] for e in etiquetas[:3]]
+    return ", ".join(etiquetas)
 
-    # Arquetipo principal = más destacado
-    arquetipo_principal = etiquetas_finales[0]
-
-    # Diccionario de prototipos
-    arquetipos_prototipos = {
-        "Playmaker": ["Tyrese Haliburton", "Ricky Rubio"],
-        "Finalizador": ["Zach LaVine", "Anthony Edwards"],
-        "Tirador": ["Klay Thompson", "Buddy Hield"],
-        "Slasher": ["DeMar DeRozan", "RJ Barrett"],
-        "Protector del aro": ["Jaren Jackson Jr.", "Walker Kessler"],
-        "Ladrón": ["Matisse Thybulle", "Alex Caruso"],
-        "3&D": ["OG Anunoby", "Dorian Finney-Smith"],
-        "Reboteador": ["Clint Capela", "Andre Drummond"],
-        "Dominante en rebote": ["Steven Adams", "Domantas Sabonis"],
-        "Reboteador ofensivo": ["Mitchell Robinson", "Kenneth Faried"],
-        "Reboteador defensivo": ["Brook Lopez", "Rudy Gobert"],
-        "Creador eficiente": ["Chris Paul", "Monte Morris"],
-        "Cuida el balón": ["Malcolm Brogdon", "Tyus Jones"],
-        "Perfil mixto": ["Bruce Brown", "Josh Hart"]
-    }
-
-    prototipos = arquetipos_prototipos.get(arquetipo_principal, [])
-
-    return {
-        "etiquetas": etiquetas_finales,
-        "arquetipo_principal": arquetipo_principal,
-        "prototipos": prototipos
-    }
 
 
 
@@ -277,7 +265,7 @@ with tabs[0]:
     resultados = [
     etiquetar_y_prototipar_cluster(df_clustered, cluster_id, vars_seleccionadas)
     for cluster_id in resumen.index]
-    resumen['Etiqueta'] = [describir_cluster_avanzado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
+    resumen['Etiqueta'] = [r['etiquetas'] for r in resultados]
     resumen['Arquetipo'] = [r['arquetipo_principal'] for r in resultados]
     resumen['Prototipos'] = [", ".join(r['prototipos']) for r in resultados]
 
