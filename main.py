@@ -171,8 +171,6 @@ df_clustered['Cluster'] = clusters
 df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
-
-# --- Función para describir clusters ---
 def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=0.85):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
@@ -229,7 +227,6 @@ def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=
     etiquetas_finales = [e[0] for e in etiquetas[:3]]  # Limita a 3 principales
 
     return ", ".join(etiquetas_finales)
-
 
 
 
