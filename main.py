@@ -236,7 +236,7 @@ with tabs[0]:
 
     st.subheader("Perfil promedio por Cluster")
     resumen = df_clustered.groupby('Cluster')[vars_seleccionadas].mean().round(2)
-    resumen['Etiqueta'] = [describir_cluster_avanzado(df_clustered, cluster_id, vars_seleccionadas, umbral=1.0) for cluster_id in resumen.index]
+    resumen['Etiqueta'] = resumen.apply(describir_cluster_por_medias, axis=1)
     df_clustered['ClusterEtiqueta'] = df_clustered['Cluster'].map(resumen['Etiqueta'])
 
 
