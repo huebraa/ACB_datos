@@ -174,7 +174,7 @@ df_clustered['PCA1'] = X_pca[:, 0]
 df_clustered['PCA2'] = X_pca[:, 1]
 
 # --- Función para describir clusters ---
-def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
+def describir_cluster_avanzado(df_total, cluster_id, vars_seleccionadas, umbral=1.0):
     cluster_data = df_total[df_total['Cluster'] == cluster_id]
     if cluster_data.empty:
         return "Cluster vacío"
@@ -183,27 +183,67 @@ def describir_cluster_mejorado(df_total, cluster_id, vars_seleccionadas, umbral=
     global_std = df_total[vars_seleccionadas].std()
     centroid = cluster_data[vars_seleccionadas].mean()
 
+    # Calcular z-scores del centroide respecto global
     z_scores = (centroid - global_mean) / global_std
+
+    # Percentiles para algunas variables que no tienen sentido con z-score (como volumen de triples)
+    percentiles = {var: percentileofscore(df_total[var].dropna(), centroid[var]) for var in ['3PA', 'TOV%'] if var in df_total.columns}
 
     etiquetas = []
 
-    if z_scores.get('AST%', 0) > umbral:
+    # Regla Playmaker
+    if z_scores.get('AST%', 0) > umbral and z_scores.get('Ast/TO', 0) > 0:
         etiquetas.append("Playmaker")
-    if z_scores.get('3P%', 0) > umbral:
+
+    # Tirador especialista
+    if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) > 50:
         etiquetas.append("Tirador")
-    if z_scores.get('BLK%', 0) > umbral:
-        etiquetas.append("Interior defensor")
-    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > 0:
+
+    # Interior Defensor
+    if z_scores.get('BLK%', 0) > umbral and z_scores.get('DRB%', 0) > umbral:
+        etiquetas.append("Interior Defensor")
+
+    # 3&D
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('3P%', 0) > umbral:
         etiquetas.append("3&D")
-    if z_scores.get('FG%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
+
+    # Slasher
+    if (z_scores.get('FG%', 0) > umbral and
+        z_scores.get('USG%', 0) > umbral and
+        z_scores.get('TOV%', 0) < umbral):
         etiquetas.append("Slasher")
+
+    # Reboteador puro
     if z_scores.get('TRB%', 0) > umbral and z_scores.get('USG%', 0) < -umbral:
-        etiquetas.append("Reboteador puro")
+        etiquetas.append("Reboteador Puro")
+
+    # Defensor versátil
+    if z_scores.get('STL%', 0) > umbral and z_scores.get('BLK%', 0) > 0.5*umbral:
+        etiquetas.append("Defensor Versátil")
+
+    # Tirador de media distancia
+    if (z_scores.get('FG%', 0) > umbral and
+        z_scores.get('3P%', 0) < umbral and
+        z_scores.get('USG%', 0) > umbral):
+        etiquetas.append("Tirador de Media")
+
+    # Tirador selectivo
+    if z_scores.get('3P%', 0) > umbral and percentiles.get('3PA', 0) < 50:
+        etiquetas.append("Tirador Selectivo")
+
+    # Eficiente general
+    if z_scores.get('TS%', 0) > umbral and z_scores.get('TOV%', 0) < umbral:
+        etiquetas.append("Eficiente")
+
+    # Generador de juego de alto volumen
+    if z_scores.get('AST%', 0) > umbral and z_scores.get('USG%', 0) > umbral:
+        etiquetas.append("Generador de Juego")
 
     if not etiquetas:
-        return "Perfil mixto"
+        return "Perfil Mixto"
 
     return ", ".join(etiquetas)
+
 
 # --- Visualizaciones y tabs ---
 tabs = st.tabs([
